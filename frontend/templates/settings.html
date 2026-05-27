@@ -1,0 +1,3014 @@
+{% extends "base.html" %}
+
+{% block title %}AIJian - 设置{% endblock %}
+
+{% block content %}
+<!-- 返回首页按钮 -->
+<div class="floating-actions left">
+    <button onclick="window.location.href='/'" style="padding: 10px 20px; background: rgba(255,255,255,0.9); color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        <span>←</span>
+        <span>返回首页</span>
+    </button>
+</div>
+
+<!-- 快捷导航 -->
+<div class="floating-actions right">
+    <button onclick="window.location.href='/commentary'" style="padding: 8px 16px; background: rgba(255,255,255,0.9); color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+        🎙️ 原创解说
+    </button>
+    <button onclick="window.location.href='/remix'" style="padding: 8px 16px; background: rgba(255,255,255,0.9); color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+        ✂️ 混剪模式
+    </button>
+    <button onclick="window.location.href='/voiceover'" style="padding: 8px 16px; background: rgba(255,255,255,0.9); color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+        🔊 AI配音
+    </button>
+    <button onclick="window.location.href='/editor'" style="padding: 8px 16px; background: rgba(255,255,255,0.9); color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+        🎬 编辑器
+    </button>
+</div>
+
+<!-- 隐藏base.html的全局属性面板和编辑器专用功能 -->
+<style>
+    /* 完全隐藏右侧属性面板 */
+    body > div > aside.w-80,
+    body > div > aside[style*="width: 400px"] {
+        display: none !important;
+    }
+
+    /* 让主内容占满全宽 */
+    body > div {
+        grid-template-columns: auto 1fr !important;
+    }
+
+    /* 隐藏所有编辑器专用的属性面板 */
+    #clip-properties,
+    #color-correction,
+    #export-settings,
+    #effects-panel,
+    aside.animate-slide-in-right {
+        display: none !important;
+    }
+
+    .settings-container {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 30px;
+        margin-top: 80px;
+        padding: 0 30px 60px 30px;
+        max-width: 1600px;
+        margin-left: auto;
+        margin-right: auto;
+        min-height: calc(100vh - 80px);
+    }
+
+    .settings-sidebar {
+        position: sticky;
+        top: 100px;
+        height: fit-content;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+    .sidebar-header {
+        text-align: center;
+        padding: 15px 0 20px 0;
+        border-bottom: 2px solid #f0f0f0;
+        margin-bottom: 20px;
+    }
+
+    .sidebar-header h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 5px;
+    }
+
+    .sidebar-header p {
+        font-size: 12px;
+        color: #718096;
+    }
+
+    .settings-menu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .menu-item {
+        margin-bottom: 8px;
+    }
+
+    .menu-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: transparent;
+        color: #4a5568;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+
+    .menu-link:hover {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        color: #667eea;
+        transform: translateX(5px);
+    }
+
+    .menu-link.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        transform: translateX(5px);
+    }
+
+    .menu-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+
+    .menu-text {
+        flex: 1;
+    }
+
+    .menu-badge {
+        padding: 2px 8px;
+        background: rgba(102, 126, 234, 0.1);
+        color: #667eea;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .menu-link.active .menu-badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .settings-content {
+        min-height: calc(100vh - 180px);
+    }
+
+    /* 内容切换动画优化 - 使用硬件加速 */
+    [id^="settings-"] {
+        display: none;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        will-change: opacity, transform;
+    }
+
+    [id^="settings-"].active-section {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* 初始化第一个标签页为显示状态 */
+    #settings-api {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* API配置卡片性能优化 */
+    [style*="background: linear-gradient"] {
+        will-change: transform, box-shadow;
+        backface-visibility: hidden;
+        perspective: 1000px;
+    }
+
+    /* 输入框和选择框性能优化 */
+    input, select, textarea {
+        will-change: border-color;
+    }
+
+    /* 按钮悬停性能优化 */
+    button {
+        will-change: transform;
+        backface-visibility: hidden;
+    }
+
+    @media (max-width: 1200px) {
+        .settings-container {
+            grid-template-columns: 1fr;
+        }
+        .settings-sidebar {
+            position: relative;
+            top: 0;
+        }
+    }
+</style>
+
+<!-- 主内容区域 - 现代化侧边栏布局 -->
+<div class="settings-container">
+
+    <!-- 左侧导航栏 -->
+    <aside class="settings-sidebar">
+        <div class="sidebar-header">
+            <h3>⚙️ 系统设置</h3>
+            <p>配置您的智剪工作区</p>
+        </div>
+
+        <ul class="settings-menu">
+            <li class="menu-item">
+                <a class="menu-link active" data-tab="api" onclick="switchTab(event, 'api')">
+                    <span class="menu-icon">🔑</span>
+                    <span class="menu-text">API配置</span>
+                    <span class="menu-badge">核心</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a class="menu-link" data-tab="appearance" onclick="switchTab(event, 'appearance')">
+                    <span class="menu-icon">🎨</span>
+                    <span class="menu-text">外观设置</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a class="menu-link" data-tab="language" onclick="switchTab(event, 'language')">
+                    <span class="menu-icon">🌐</span>
+                    <span class="menu-text">语言设置</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a class="menu-link" data-tab="file" onclick="switchTab(event, 'file')">
+                    <span class="menu-icon">📁</span>
+                    <span class="menu-text">文件设置</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a class="menu-link" data-tab="notification" onclick="switchTab(event, 'notification')">
+                    <span class="menu-icon">🔔</span>
+                    <span class="menu-text">通知设置</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a class="menu-link" data-tab="performance" onclick="switchTab(event, 'performance')">
+                    <span class="menu-icon">⚡</span>
+                    <span class="menu-text">性能设置</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a class="menu-link" data-tab="advanced" onclick="switchTab(event, 'advanced')">
+                    <span class="menu-icon">🔧</span>
+                    <span class="menu-text">高级设置</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a class="menu-link" data-tab="about" onclick="switchTab(event, 'about')">
+                    <span class="menu-icon">ℹ️</span>
+                    <span class="menu-text">关于</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- 右侧内容区域 -->
+    <main class="settings-content">
+
+    <!-- 设置内容 -->
+    <div class="layui-col-md12">
+
+        <!-- API配置 - 重新设计 -->
+        <div id="settings-api" class="active-section">
+            <!-- 实时指标卡片（动态刷新） -->
+            <div id="realtime-metrics" style="display: grid; grid-template-columns: repeat(3, minmax(240px, 1fr)); gap: 18px; margin-bottom: 25px;">
+                <!-- 存储情况 -->
+                <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 18px;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;">
+                            <i class="fa fa-database" style="color:#fff"></i>
+                        </div>
+                        <div style="color:#fff;font-weight:700;">存储情况</div>
+                    </div>
+                    <div style="color:rgba(255,255,255,0.85);font-size:22px;font-weight:800;" id="metric-storage-app">--</div>
+                    <div style="margin:10px 0;height:8px;background:rgba(255,255,255,0.12);border-radius:6px;overflow:hidden;">
+                        <div id="metric-storage-progress" style="height:8px;width:0%;background:linear-gradient(90deg,#22d3ee,#6366f1);"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;color:rgba(255,255,255,0.7);font-size:12px;">
+                        <span id="metric-storage-used">已用 --</span>
+                        <span id="metric-storage-total">总计 --</span>
+                    </div>
+                </div>
+                <!-- 项目个数 -->
+                <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 18px;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;">
+                            <i class="fa fa-folder" style="color:#fff"></i>
+                        </div>
+                        <div style="color:#fff;font-weight:700;">保存配置</div>
+                    </div>
+                    <button onclick="saveAllConfig()" style="padding: 14px 30px; background: rgba(255,255,255,0.95); color: #667eea; border: none; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <i class="fa fa-save" style="margin-right: 6px;"></i>保存所有配置
+                    </button>
+                </div>
+                <!-- 运行状态 -->
+                <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 18px;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;">
+                            <i class="fa fa-check-circle" style="color:#10b981"></i>
+                        </div>
+                        <div style="color:#fff;font-weight:700;">系统状态</div>
+                    </div>
+                    <div style="color:rgba(255,255,255,0.85);font-size:22px;font-weight:800;" id="metric-system-text">--</div>
+                    <div style="margin-top:8px;color:rgba(255,255,255,0.75);font-size:12px;display:flex;gap:10px;flex-wrap:wrap;">
+                        <span>API已配置 <b id="metric-api-configured">--</b></span>
+                        <span>引擎就绪 <b id="metric-engines">--</b></span>
+                        <span>LLM <b id="metric-llm">--</b></span>
+                        <span>Vision <b id="metric-vision">--</b></span>
+                        <span>TTS <b id="metric-tts">--</b></span>
+                        <span>运行时长 <b id="metric-uptime">--</b></span>
+                    </div>
+                </div>
+            </div>
+            <!-- 所有大模型配置卡片 -->
+            <div style="display: grid; gap: 25px;">
+                <!-- 1. Custom - 绿色科技风 -->
+                <div style="background: linear-gradient(135deg, rgba(16,185,129,0.05) 0%, rgba(5,150,105,0.05) 100%); border-radius: 20px; padding: 30px; border: 2px solid rgba(16,185,129,0.15); box-shadow: 0 6px 25px rgba(16,185,129,0.08);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid rgba(16,185,129,0.1);">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(16,185,129,0.3);">
+                            <span style="font-size: 30px;">🟢</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 5px 0; font-size: 20px; font-weight: 800; color: rgba(255,255,255,0.95);">Custom LLM</h3>
+                            <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6);">自定义大模型</p>
+                        </div>
+                    </div>
+                    <div style="display: grid; gap: 18px;">
+                        <div style="background: rgba(15,23,42,0.4); padding: 18px; border-radius: 12px; box-sizing: border-box;">
+                            <label style="display: block; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 10px;">🔑 API Key</label>
+                            <input type="password" name="custom_api_key" placeholder="sk-..." style="width: 100%; padding: 14px; background: rgba(30,41,59,0.6); border: 1px solid rgba(16,185,129,0.3); border-radius: 10px; color: rgba(255,255,255,0.9); font-size: 13px; font-family: 'Courier New', monospace; box-sizing: border-box;">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div style="background: rgba(15,23,42,0.4); padding: 18px; border-radius: 12px; box-sizing: border-box;">
+                                <label style="display: block; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 10px;">🌐 Base URL</label>
+                                <input type="text" name="custom_base_url" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1" value="https://dashscope.aliyuncs.com/compatible-mode/v1" style="width: 100%; padding: 14px; background: rgba(30,41,59,0.6); border: 1px solid rgba(16,185,129,0.3); border-radius: 10px; color: rgba(255,255,255,0.9); font-size: 13px; box-sizing: border-box;">
+                            </div>
+                            <div style="background: rgba(15,23,42,0.4); padding: 18px; border-radius: 12px; box-sizing: border-box;">
+                                <label style="display: block; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 10px;">🤖 模型</label>
+                                <select name="custom_model" style="width: 100%; padding: 14px; background: rgba(30,41,59,0.6); border: 1px solid rgba(16,185,129,0.3); border-radius: 10px; color: rgba(255,255,255,0.9); font-size: 13px; cursor: pointer; box-sizing: border-box;">
+                                    <option value="deepseek-v3.2">deepseek-v3.2</option>
+                                    <option value="glm-5">glm-5</option>
+                                    <option value="qwen-max">qwen-max</option>
+                                    <option value="qwen3.6-flash">qwen3.6-flash</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <button onclick="saveModelConfig('custom')" style="padding: 14px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(59,130,246,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                <i class="fa fa-save" style="margin-right: 6px;"></i>保存配置
+                            </button>
+                            <button onclick="testCustom()" style="padding: 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(16,185,129,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                <i class="fa fa-plug" style="margin-right: 6px;"></i>测试连接
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============ 视觉模型配置 ============ -->
+
+                <!-- 分隔标题 - 视觉模型 -->
+                <div style="margin: 40px 0 25px; text-align: center;">
+                    <div style="display: inline-flex; align-items: center; gap: 15px; padding: 15px 40px; background: linear-gradient(135deg, rgba(236,72,153,0.1) 0%, rgba(219,39,119,0.1) 100%); border-radius: 50px; border: 2px solid rgba(236,72,153,0.2);">
+                        <span style="font-size: 24px;">👁️</span>
+                        <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: rgba(255,255,255,0.95);">视觉模型API</h2>
+                        <span style="font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 600;">用于视频帧分析</span>
+                    </div>
+                </div>
+
+                <!-- 10. GPT-4V (OpenAI Vision) - 绿松石视觉风 -->
+                <div style="background: linear-gradient(135deg, rgba(20,184,166,0.05) 0%, rgba(13,148,136,0.05) 100%); border-radius: 20px; padding: 30px; border: 2px solid rgba(20,184,166,0.15); box-shadow: 0 6px 25px rgba(20,184,166,0.08);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid rgba(20,184,166,0.1);">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(20,184,166,0.3);">
+                            <span style="font-size: 30px;">👁️</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 5px 0; font-size: 20px; font-weight: 800; color: rgba(255,255,255,0.95);">GPT-4V (OpenAI Vision)</h3>
+                            <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6);">最强视觉理解 · 支持图像分析</p>
+                        </div>
+                        <a href="https://platform.openai.com/api-keys" target="_blank" style="padding: 10px 20px; background: rgba(20,184,166,0.15); color: #14b8a6; border: 1px solid rgba(20,184,166,0.3); border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.3s;" onmouseover="this.style.background='rgba(20,184,166,0.25)'" onmouseout="this.style.background='rgba(20,184,166,0.15)'">
+                            <i class="fa fa-external-link" style="margin-right: 5px;"></i>申请密钥
+                        </a>
+                    </div>
+                    <div style="display: grid; gap: 18px;">
+                        <div style="background: rgba(15,23,42,0.4); padding: 18px; border-radius: 12px;">
+                            <label style="display: block; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 10px;">🔑 API Key (与OpenAI共用)</label>
+                            <input type="password" name="gpt4v_api_key" placeholder="sk-..." style="width: 100%; padding: 14px; background: rgba(30,41,59,0.6); border: 1px solid rgba(20,184,166,0.3); border-radius: 10px; color: rgba(255,255,255,0.9); font-size: 13px; font-family: 'Courier New', monospace;">
+                        </div>
+                        <div style="background: rgba(15,23,42,0.4); padding: 18px; border-radius: 12px;">
+                            <label style="display: block; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 10px;">🤖 模型版本</label>
+                            <select name="gpt4v_model" style="width: 100%; padding: 14px; background: rgba(30,41,59,0.6); border: 1px solid rgba(20,184,166,0.3); border-radius: 10px; color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600;">
+                                <option value="gpt-4-vision-preview" selected>GPT-4 Vision Preview</option>
+                                <option value="gpt-4-turbo">GPT-4 Turbo (with vision)</option>
+                            </select>
+                        </div>
+                        <button onclick="testGPT4V()" style="padding: 14px; background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(20,184,166,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-plug" style="margin-right: 6px;"></i>测试连接
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 11. Claude Vision - 珊瑚橙视觉风 -->
+                <div style="background: linear-gradient(135deg, rgba(255,127,80,0.05) 0%, rgba(255,99,71,0.05) 100%); border-radius: 20px; padding: 30px; border: 2px solid rgba(255,127,80,0.15); box-shadow: 0 6px 25px rgba(255,127,80,0.08);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid rgba(255,127,80,0.1);">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #ff7f50 0%, #ff6347 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(255,127,80,0.3);">
+                            <span style="font-size: 30px;">🔍</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 5px 0; font-size: 20px; font-weight: 800; color: rgba(255,255,255,0.95);">Claude Vision</h3>
+                            <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6);">细致理解 · 支持PDF和图像</p>
+                        </div>
+                        <a href="https://console.anthropic.com/" target="_blank" style="padding: 10px 20px; background: rgba(255,127,80,0.15); color: #ff7f50; border: 1px solid rgba(255,127,80,0.3); border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,127,80,0.25)'" onmouseout="this.style.background='rgba(255,127,80,0.15)'">
+                            <i class="fa fa-external-link" style="margin-right: 5px;"></i>申请密钥
+                        </a>
+                    </div>
+                    <div style="display: grid; gap: 18px;">
+                        <div style="background: rgba(15,23,42,0.4); padding: 18px; border-radius: 12px;">
+                            <label style="display: block; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 10px;">🔑 API Key (与Claude共用)</label>
+                            <input type="password" name="claude_vision_api_key" placeholder="sk-ant-..." style="width: 100%; padding: 14px; background: rgba(30,41,59,0.6); border: 1px solid rgba(255,127,80,0.3); border-radius: 10px; color: rgba(255,255,255,0.9); font-size: 13px; font-family: 'Courier New', monospace;">
+                        </div>
+                        <button onclick="testClaudeVision()" style="padding: 14px; background: linear-gradient(135deg, #ff7f50 0%, #ff6347 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(255,127,80,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-plug" style="margin-right: 6px;"></i>测试连接
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ============ 语音模型配置 ============ -->
+
+                <!-- 分隔标题 - 语音模型 -->
+                <div style="margin: 40px 0 25px; text-align: center;">
+                    <div style="display: inline-flex; align-items: center; gap: 15px; padding: 15px 40px; background: linear-gradient(135deg, rgba(14,165,233,0.1) 0%, rgba(2,132,199,0.1) 100%); border-radius: 50px; border: 2px solid rgba(14,165,233,0.2);">
+                        <span style="font-size: 24px;">🎤</span>
+                        <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: rgba(255,255,255,0.95);">语音模型API</h2>
+                        <span style="font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 600;">用于文字转语音(TTS)</span>
+                    </div>
+                </div>
+
+                <!-- 12. Azure TTS - 蔚蓝天空风 -->
+                <div style="background: linear-gradient(135deg, rgba(14,165,233,0.05) 0%, rgba(2,132,199,0.05) 100%); border-radius: 20px; padding: 30px; border: 2px solid rgba(14,165,233,0.15); box-shadow: 0 6px 25px rgba(14,165,233,0.08);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid rgba(14,165,233,0.1);">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(14,165,233,0.3);">
+                            <span style="font-size: 30px;">🎙️</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 5px 0; font-size: 20px; font-weight: 800; color: rgba(255,255,255,0.95);">Microsoft Azure TTS</h3>
+                            <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6);">高质量语音合成 · 支持100+语言</p>
+                        </div>
+                        <a href="https://azure.microsoft.com/zh-cn/services/cognitive-services/text-to-speech/" target="_blank" style="padding: 10px 20px; background: rgba(14,165,233,0.15); color: #0ea5e9; border: 1px solid rgba(14,165,233,0.3); border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.3s;" onmouseover="this.style.background='rgba(14,165,233,0.25)'" onmouseout="this.style.background='rgba(14,165,233,0.15)'">
+                            <i class="fa fa-external-link" style="margin-right: 5px;"></i>申请密钥
+                        </a>
+                    </div>
+                    <div style="display: grid; gap: 18px;">
+                        <div style="background: rgba(15,23,42,0.4); padding: 18px; border-radius: 12px;">
+                            <label style="display: block; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 10px;">🔑 Subscription Key</label>
+                            <input type="password" name="azure_tts_key" placeholder="输入Azure订阅密钥..." style="width: 100%; padding: 14px; background: rgba(30,41,59,0.6); border: 1px solid rgba(14,165,233,0.3); border-radius: 10px; color: rgba(255,255,255,0.9); font-size: 13px; font-family: 'Courier New', monospace;">
+                        </div>
+                        <div style="background: rgba(15,23,42,0.4); padding: 18px; border-radius: 12px;">
+                            <label style="display: block; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 10px;">🌍 服务区域</label>
+                            <select name="azure_tts_region" style="width: 100%; padding: 14px; background: rgba(30,41,59,0.6); border: 1px solid rgba(14,165,233,0.3); border-radius: 10px; color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600;">
+                                <option value="eastus">美国东部</option>
+                                <option value="westus">美国西部</option>
+                                <option value="eastasia" selected>东亚 (香港)</option>
+                                <option value="southeastasia">东南亚 (新加坡)</option>
+                                <option value="japaneast">日本东部</option>
+                                <option value="koreacentral">韩国中部</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                            <button onclick="testAzureTTS()" style="padding: 14px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(14,165,233,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                <i class="fa fa-plug" style="margin-right: 6px;"></i>测试连接
+                            </button>
+                            <button type="button" onclick="previewAzureTTS()" style="padding: 14px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(34,197,94,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                <i class="fa fa-play" style="margin-right: 6px;"></i>试听示例音色
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 本地 Voice Clone 引擎 -->
+                <div style="background: linear-gradient(135deg, rgba(56,189,248,0.05) 0%, rgba(79,70,229,0.05) 100%); border-radius: 20px; padding: 24px; border: 2px solid rgba(59,130,246,0.18); box-shadow: 0 6px 25px rgba(59,130,246,0.08); margin-top: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width: 46px; height: 46px; background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%); border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(59,130,246,0.4);">
+                                <span style="font-size: 24px;">🎧</span>
+                            </div>
+                            <div>
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: rgba(255,255,255,0.96);">本地 Voice Clone 引擎</h3>
+                                <p style="margin: 3px 0 0; font-size: 12px; color: rgba(255,255,255,0.65);">使用本地可执行程序进行高保真配音，无需任何云端API。</p>
+                            </div>
+                        </div>
+                        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:rgba(255,255,255,0.8); white-space:nowrap;">
+                            <input type="checkbox" name="enable_voice_clone" style="width:16px; height:16px; accent-color:#3b82f6;">
+                            启用
+                        </label>
+                    </div>
+                    <div style="display:grid; gap:12px;">
+                        <div>
+                            <label style="display:block; font-size:12px; font-weight:700; color:rgba(255,255,255,0.85); margin-bottom:6px;">模型目录</label>
+                            <input type="text" name="voice_clone_model_path" placeholder="例如：D:\\Users\\LW\\voice_clone-0.1.1\\checkpoints_v2" style="width:100%; padding:10px 12px; background:rgba(15,23,42,0.8); border:1px solid rgba(59,130,246,0.4); border-radius:10px; color:rgba(255,255,255,0.95); font-size:12px;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:12px; font-weight:700; color:rgba(255,255,255,0.85); margin-bottom:6px;">可执行文件路径</label>
+                            <input type="text" name="voice_clone_executable_path" placeholder="例如：D:\\Users\\LW\\voice_clone-0.1.1\\voice_clone.exe" style="width:100%; padding:10px 12px; background:rgba(15,23,42,0.8); border:1px solid rgba(59,130,246,0.4); border-radius:10px; color:rgba(255,255,255,0.95); font-size:12px;">
+                        </div>
+                        <div style="text-align:right; margin-top:4px;">
+                            <div style="display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px;">
+                                <button type="button" onclick="testVoiceCloneEngineSettings()" style="padding: 10px 16px; background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); color: white; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 10px rgba(59,130,246,0.4); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                                    ⚙️ 测试本地引擎
+                                </button>
+                                <button type="button" onclick="previewVoiceCloneSample()" style="padding: 10px 16px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 10px rgba(34,197,94,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                                    ▶️ 试听示例音色
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 统一音频试听播放器（Azure TTS / 本地 Voice Clone 共用） -->
+                <div id="settingsAudioPreviewWrapper" style="margin-top: 18px; display: none; background: rgba(15,23,42,0.5); border-radius: 14px; padding: 16px; border: 1px solid rgba(148,163,184,0.4);">
+                    <div style="font-size: 13px; color: rgba(226,232,240,0.85); font-weight: 600; margin-bottom: 8px; display:flex; align-items:center; gap:6px;">
+                        <i class="fa fa-headphones" style="color:#22c55e;"></i>
+                        <span>试听播放器</span>
+                    </div>
+                    <audio id="settingsAudioPreview" controls style="width: 100%; outline: none;"></audio>
+                    <div style="font-size: 12px; color: rgba(148,163,184,0.9); margin-top: 6px;">
+                        若浏览器阻止自动播放，请点击上方播放按钮手动试听。
+                    </div>
+                </div>
+
+                <!-- 快速操作区域 -->
+                <div style="background: linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(79,70,229,0.05) 100%); border-radius: 20px; padding: 30px; border: 2px solid rgba(99,102,241,0.15); box-shadow: 0 6px 25px rgba(99,102,241,0.08); margin-top: 25px;">
+                    <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 6px 20px rgba(99,102,241,0.3);">
+                            <i class="fa fa-rocket" style="color: white; font-size: 30px;"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 5px 0; font-size: 20px; font-weight: 800; color: rgba(255,255,255,0.95);">快速操作</h3>
+                            <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6);">批量操作和实用工具</p>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <button onclick="testAllModels()" style="padding: 14px 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(16,185,129,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-check-circle" style="margin-right: 6px;"></i>批量测试连接
+                        </button>
+                        <button onclick="exportConfig()" style="padding: 14px 20px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(59,130,246,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-download" style="margin-right: 6px;"></i>导出配置
+                        </button>
+                        <button onclick="importConfig()" style="padding: 14px 20px; background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(139,92,246,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-upload" style="margin-right: 6px;"></i>导入配置
+                        </button>
+                        <button onclick="saveAllConfig()" style="padding: 14px 20px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(99,102,241,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-save" style="margin-right: 6px;"></i>保存所有设置
+                        </button>
+                        <button onclick="cancelChanges()" style="padding: 14px 20px; background: linear-gradient(135deg, #6b7280 0%, #374151 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(55,65,81,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-undo" style="margin-right: 6px;"></i>取消
+                        </button>
+                        <button onclick="resetAll()" style="padding: 14px 20px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(245,158,11,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-refresh" style="margin-right: 6px;"></i>重置
+                        </button>
+                        <button onclick="clearAllConfig()" style="padding: 14px 20px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(239,68,68,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-trash" style="margin-right: 6px;"></i>清空配置
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 配置说明和提示区域 -->
+                <div style="background: linear-gradient(135deg, rgba(168,85,247,0.05) 0%, rgba(126,34,206,0.05) 100%); border-radius: 20px; padding: 30px; border: 2px solid rgba(168,85,247,0.15); box-shadow: 0 6px 25px rgba(168,85,247,0.08); margin-top: 10px;">
+                    <div style="display: flex; align-items: flex-start; gap: 20px;">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 6px 20px rgba(168,85,247,0.3);">
+                            <i class="fa fa-info-circle" style="color: white; font-size: 30px;"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 15px 0; font-size: 20px; font-weight: 800; color: rgba(255,255,255,0.95);">配置说明</h3>
+                            <div style="display: grid; gap: 12px; font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.75);">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #a855f7; font-weight: 700;">🔐</span>
+                                    <span>所有API密钥将采用AES-256加密算法安全存储在本地配置文件中</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #a855f7; font-weight: 700;">🚀</span>
+                                    <span>配置后可用于AI文案生成、智能分析、语音合成、字幕生成等功能</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #a855f7; font-weight: 700;">💡</span>
+                                    <span>建议配置2-3个不同平台的API作为备用，确保服务稳定性</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #a855f7; font-weight: 700;">🌐</span>
+                                    <span>国内用户可修改Base URL使用国内中转服务，提升访问速度</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: #a855f7; font-weight: 700;">⚠️</span>
+                                    <span>请妥善保管API密钥，不要分享给他人。如密钥泄露请及时更换</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 外观设置 - 现代化重新设计 -->
+        <div id="settings-appearance" style="display: none;">
+            <!-- 顶部横幅 -->
+            <div style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); border-radius: 20px; padding: 35px; margin-bottom: 25px; box-shadow: 0 10px 35px rgba(236,72,153,0.3);">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 18px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa fa-paint-brush" style="color: white; font-size: 32px;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h2 style="margin: 0 0 10px 0; font-size: 28px; color: white; font-weight: 900;">外观个性化</h2>
+                        <p style="margin: 0; font-size: 14px; color: rgba(255,255,255,0.9);">打造专属于你的视觉体验</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主题模式选择 - 卡片式 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(236,72,153,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🌓</span> 主题模式
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <!-- 深色主题 -->
+                    <div onclick="selectTheme('dark')" style="background: linear-gradient(135deg, rgba(15,23,42,0.8) 0%, rgba(30,41,59,0.8) 100%); border: 2px solid #ec4899; border-radius: 16px; padding: 25px; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(236,72,153,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                        <div style="position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; background: #ec4899; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <i class="fa fa-check" style="color: white; font-size: 12px;"></i>
+                        </div>
+                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);"></div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: white;">深色主题</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">护眼舒适，适合长时间使用</p>
+                    </div>
+
+                    <!-- 浅色主题 -->
+                    <div onclick="selectTheme('light')" style="background: linear-gradient(135deg, rgba(248,250,252,0.1) 0%, rgba(241,245,249,0.1) 100%); border: 2px solid rgba(236,72,153,0.2); border-radius: 16px; padding: 25px; cursor: pointer; transition: all 0.3s; position: relative;" onmouseover="this.style.transform='translateY(-5px)'; this.style.borderColor='#ec4899'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(236,72,153,0.2)'">
+                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"></div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">浅色主题</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">清新明亮，白天使用更佳</p>
+                    </div>
+
+                    <!-- 跟随系统 -->
+                    <div onclick="selectTheme('system')" style="background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.1) 100%); border: 2px solid rgba(236,72,153,0.2); border-radius: 16px; padding: 25px; cursor: pointer; transition: all 0.3s; position: relative;" onmouseover="this.style.transform='translateY(-5px)'; this.style.borderColor='#ec4899'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(236,72,153,0.2)'">
+                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(99,102,241,0.3);"></div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">跟随系统</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">自动适配系统主题设置</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主题颜色选择 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(236,72,153,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🎨</span> 主题颜色
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px;">
+                    <div onclick="selectColor('#3b82f6')" style="aspect-ratio: 1; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 16px; cursor: pointer; transition: all 0.3s; border: 3px solid #3b82f6; box-shadow: 0 4px 15px rgba(59,130,246,0.3);" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></div>
+                    <div onclick="selectColor('#10b981')" style="aspect-ratio: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 16px; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></div>
+                    <div onclick="selectColor('#8b5cf6')" style="aspect-ratio: 1; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 16px; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></div>
+                    <div onclick="selectColor('#f59e0b')" style="aspect-ratio: 1; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 16px; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></div>
+                    <div onclick="selectColor('#ef4444')" style="aspect-ratio: 1; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 16px; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></div>
+                    <div onclick="selectColor('#6366f1')" style="aspect-ratio: 1; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border-radius: 16px; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></div>
+                </div>
+            </div>
+
+            <!-- 界面调整 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(236,72,153,0.2);">
+                <h3 style="margin: 0 0 25px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">⚙️</span> 界面调整
+                </h3>
+
+                <!-- 透明度滑块 -->
+                <div style="margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <label style="font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8);">界面透明度</label>
+                        <span id="opacity-value" style="font-size: 14px; font-weight: 700; color: #ec4899;">80%</span>
+                    </div>
+                    <input type="range" name="opacity" min="50" max="100" value="80" oninput="document.getElementById('opacity-value').textContent=this.value+'%'" style="width: 100%; height: 8px; background: linear-gradient(to right, rgba(236,72,153,0.3) 0%, #ec4899 100%); border-radius: 10px; outline: none; -webkit-appearance: none; appearance: none;">
+                    <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: rgba(255,255,255,0.5);">
+                        <span>半透明</span>
+                        <span>不透明</span>
+                    </div>
+                </div>
+
+                <!-- 字体和图标大小 -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                    <div>
+                        <label style="display: block; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8); margin-bottom: 10px;">字体大小</label>
+                        <select name="font-size" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(236,72,153,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                            <option value="small">小 (12px)</option>
+                            <option value="normal" selected>正常 (14px)</option>
+                            <option value="large">大 (16px)</option>
+                            <option value="extra-large">超大 (18px)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8); margin-bottom: 10px;">图标大小</label>
+                        <select name="icon-size" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(236,72,153,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                            <option value="small">小</option>
+                            <option value="normal" selected>正常</option>
+                            <option value="large">大</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 视觉效果开关 -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div style="background: rgba(15,23,42,0.4); padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="margin: 0 0 5px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">动画效果</h4>
+                            <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">流畅的过渡动画</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="animation" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div style="background: rgba(15,23,42,0.4); padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="margin: 0 0 5px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">玻璃态效果</h4>
+                            <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">毛玻璃背景模糊</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="glass-effect" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+                <!-- 编辑器布局 -->
+                <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(236,72,153,0.2);">
+                    <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 24px;">🧩</span> 编辑器布局
+                    </h3>
+                    <div style="background: rgba(15,23,42,0.4); padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="margin: 0 0 5px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">默认折叠右侧属性栏</h4>
+                            <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">开启：进入编辑器时自动折叠；关闭：记住上次状态</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="editor-auto-collapse-switch" onchange="updateEditorAutoCollapsePref(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+
+            <!-- 保存按钮 -->
+            <div style="display: flex; justify-content: flex-end; gap: 15px;">
+                <button onclick="resetAppearance()" style="padding: 14px 30px; background: rgba(100,116,139,0.2); color: rgba(255,255,255,0.8); border: 1px solid rgba(100,116,139,0.3); border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(100,116,139,0.3)'" onmouseout="this.style.background='rgba(100,116,139,0.2)'">
+                    <i class="fa fa-undo" style="margin-right: 6px;"></i>恢复默认
+                </button>
+                <button onclick="saveAppearance()" style="padding: 14px 30px; background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(236,72,153,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <i class="fa fa-save" style="margin-right: 6px;"></i>保存设置
+                </button>
+            </div>
+        </div>
+
+        <!-- 添加开关样式 -->
+        <style>
+            .switch {
+                position: relative;
+                display: inline-block;
+                width: 50px;
+                height: 28px;
+            }
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(100,116,139,0.3);
+                transition: .3s;
+                border-radius: 28px;
+            }
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 20px;
+                width: 20px;
+                left: 4px;
+                bottom: 4px;
+                background-color: white;
+                transition: .3s;
+                border-radius: 50%;
+            }
+            input:checked + .slider {
+                background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+            }
+            input:checked + .slider:before {
+                transform: translateX(22px);
+            }
+        </style>
+
+        <!-- 语言设置 - 现代化重新设计 -->
+        <div id="settings-language" style="display: none;">
+            <!-- 顶部横幅 -->
+            <div style="background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%); border-radius: 20px; padding: 35px; margin-bottom: 25px; box-shadow: 0 10px 35px rgba(6,182,212,0.3);">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 18px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa fa-language" style="color: white; font-size: 32px;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h2 style="margin: 0 0 10px 0; font-size: 28px; color: white; font-weight: 900;">语言与区域</h2>
+                        <p style="margin: 0; font-size: 14px; color: rgba(255,255,255,0.9);">选择您偏好的语言和区域设置</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 应用语言选择 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(6,182,212,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🌍</span> 应用语言
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <!-- 简体中文 -->
+                    <div onclick="selectLanguage('zh-CN')" style="background: linear-gradient(135deg, rgba(6,182,212,0.15) 0%, rgba(59,130,246,0.15) 100%); border: 2px solid #06b6d4; border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s; position: relative;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 25px rgba(6,182,212,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                        <div style="position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; background: #06b6d4; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <i class="fa fa-check" style="color: white; font-size: 10px;"></i>
+                        </div>
+                        <div style="font-size: 32px; margin-bottom: 10px;">🇨🇳</div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">简体中文</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">Simplified Chinese</p>
+                    </div>
+
+                    <!-- English -->
+                    <div onclick="selectLanguage('en-US')" style="background: rgba(30,41,59,0.3); border: 2px solid rgba(6,182,212,0.2); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#06b6d4'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(6,182,212,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🇺🇸</div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">English</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">United States</p>
+                    </div>
+
+                    <!-- 日本語 -->
+                    <div onclick="selectLanguage('ja-JP')" style="background: rgba(30,41,59,0.3); border: 2px solid rgba(6,182,212,0.2); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#06b6d4'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(6,182,212,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🇯🇵</div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">日本語</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">Japanese</p>
+                    </div>
+
+                    <!-- 한국어 -->
+                    <div onclick="selectLanguage('ko-KR')" style="background: rgba(30,41,59,0.3); border: 2px solid rgba(6,182,212,0.2); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#06b6d4'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(6,182,212,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🇰🇷</div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">한국어</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">Korean</p>
+                    </div>
+
+                    <!-- 繁體中文 -->
+                    <div onclick="selectLanguage('zh-TW')" style="background: rgba(30,41,59,0.3); border: 2px solid rgba(6,182,212,0.2); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#06b6d4'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(6,182,212,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🇹🇼</div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">繁體中文</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">Traditional Chinese</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI功能语言设置 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(6,182,212,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🤖</span> AI功能语言
+                </h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- 语音识别语言 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(6,182,212,0.15);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-microphone" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 3px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">语音识别</h4>
+                                <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">ASR语言设置</p>
+                            </div>
+                        </div>
+                        <select name="asr-language" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(6,182,212,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                            <option value="zh-CN" selected>🇨🇳 中文</option>
+                            <option value="en-US">🇺🇸 英文</option>
+                            <option value="ja-JP">🇯🇵 日文</option>
+                            <option value="ko-KR">🇰🇷 韩文</option>
+                            <option value="auto">🌐 自动识别</option>
+                        </select>
+                    </div>
+
+                    <!-- 语音合成语言 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(6,182,212,0.15);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-volume-up" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 3px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">语音合成</h4>
+                                <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">TTS语言设置</p>
+                            </div>
+                        </div>
+                        <select name="tts-language" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(6,182,212,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                            <option value="zh-CN" selected>🇨🇳 中文</option>
+                            <option value="en-US">🇺🇸 英文</option>
+                            <option value="ja-JP">🇯🇵 日文</option>
+                            <option value="ko-KR">🇰🇷 韩文</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 重启提示 -->
+            <div style="background: linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(6,182,212,0.1) 100%); border: 1px solid rgba(59,130,246,0.3); border-radius: 16px; padding: 20px; margin-bottom: 25px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fa fa-info-circle" style="color: white; font-size: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">重要提示</h4>
+                        <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.6;">应用语言设置需要重启应用才能生效，AI功能语言设置立即生效</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 保存按钮 -->
+            <div style="display: flex; justify-content: flex-end; gap: 15px;">
+                <button onclick="saveLanguage()" style="padding: 14px 30px; background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(6,182,212,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <i class="fa fa-save" style="margin-right: 6px;"></i>保存设置
+                </button>
+            </div>
+        </div>
+
+        <!-- 文件设置 - 现代化重新设计 -->
+        <div id="settings-file" style="display: none;">
+            <!-- 顶部横幅 -->
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 20px; padding: 35px; margin-bottom: 25px; box-shadow: 0 10px 35px rgba(16,185,129,0.3);">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 18px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa fa-folder-open" style="color: white; font-size: 32px;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h2 style="margin: 0 0 10px 0; font-size: 28px; color: white; font-weight: 900;">文件管理</h2>
+                        <p style="margin: 0; font-size: 14px; color: rgba(255,255,255,0.9);">配置文件保存、导出和缓存设置</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 保存路径设置 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(16,185,129,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">📁</span> 默认保存路径
+                </h3>
+                <div style="background: rgba(15,23,42,0.4); border-radius: 16px; padding: 20px; border: 1px solid rgba(16,185,129,0.15);">
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <input type="text" name="save-path" value="C:\Users\Videos\AIJian" readonly style="flex: 1; padding: 14px 18px; background: rgba(15,23,42,0.6); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px;">
+                        <button onclick="chooseSavePath()" style="padding: 14px 24px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-folder-open" style="margin-right: 6px;"></i>选择路径
+                        </button>
+                    </div>
+                    <p style="margin: 12px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.5);">
+                        <i class="fa fa-info-circle" style="margin-right: 5px;"></i>所有导出的视频将默认保存到此路径
+                    </p>
+                </div>
+            </div>
+
+            <!-- 导出设置 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(16,185,129,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🎬</span> 导出设置
+                </h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- 导出格式 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(16,185,129,0.15);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-file-video-o" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 3px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">默认格式</h4>
+                                <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">视频文件格式</p>
+                            </div>
+                        </div>
+                        <select name="export-format" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                            <option value="mp4" selected>📹 MP4 (推荐)</option>
+                            <option value="mov">🎥 MOV</option>
+                            <option value="avi">📼 AVI</option>
+                            <option value="wmv">🎞️ WMV</option>
+                        </select>
+                    </div>
+
+                    <!-- 导出质量 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(16,185,129,0.15);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #059669 0%, #047857 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-sliders" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 3px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">默认质量</h4>
+                                <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">视频分辨率</p>
+                            </div>
+                        </div>
+                        <select name="export-quality" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                            <option value="high">🌟 高清 1080p</option>
+                            <option value="medium" selected>⭐ 标清 720p</option>
+                            <option value="low">💫 流畅 480p</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 自动保存设置 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(16,185,129,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">💾</span> 自动保存
+                </h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- 自动保存开关 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(16,185,129,0.15); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">启用自动保存</h4>
+                            <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5;">定期自动保存项目<br>防止意外丢失</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="auto-save" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 保存间隔 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(16,185,129,0.15);">
+                        <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">保存间隔</h4>
+                        <select name="auto-save-interval" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                            <option value="1">⏱️ 1分钟</option>
+                            <option value="3" selected>⏱️ 3分钟 (推荐)</option>
+                            <option value="5">⏱️ 5分钟</option>
+                            <option value="10">⏱️ 10分钟</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 缓存管理 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(16,185,129,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🗑️</span> 缓存管理
+                </h3>
+
+                <div style="background: rgba(15,23,42,0.4); border-radius: 16px; padding: 25px; border: 1px solid rgba(16,185,129,0.15);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">清理临时文件</h4>
+                            <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.6;">清理视频处理过程中产生的临时文件和缓存数据，释放磁盘空间</p>
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px;">
+                                <p style="margin: 0; font-size: 12px; color: rgba(239,68,68,0.9);">
+                                    <i class="fa fa-exclamation-triangle" style="margin-right: 5px;"></i>当前缓存大小: <strong>1.2 GB</strong>
+                                </p>
+                            </div>
+                        </div>
+                        <button onclick="clearCache()" style="margin-left: 20px; padding: 14px 24px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 15px rgba(239,68,68,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-trash" style="margin-right: 6px;"></i>清理缓存
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 保存按钮 -->
+            <div style="display: flex; justify-content: flex-end; gap: 15px;">
+                <button onclick="saveFileSettings()" style="padding: 14px 30px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(16,185,129,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <i class="fa fa-save" style="margin-right: 6px;"></i>保存设置
+                </button>
+            </div>
+        </div>
+
+        <!-- 通知设置 - 现代化重新设计 -->
+        <div id="settings-notification" style="display: none;">
+            <!-- 顶部横幅 -->
+            <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 20px; padding: 35px; margin-bottom: 25px; box-shadow: 0 10px 35px rgba(245,158,11,0.3);">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 18px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa fa-bell" style="color: white; font-size: 32px;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h2 style="margin: 0 0 10px 0; font-size: 28px; color: white; font-weight: 900;">通知中心</h2>
+                        <p style="margin: 0; font-size: 14px; color: rgba(255,255,255,0.9);">管理应用通知和提醒方式</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 通知类型设置 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(245,158,11,0.2);">
+                <h3 style="margin: 0 0 25px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🔔</span> 通知类型
+                </h3>
+
+                <div style="display: grid; gap: 15px;">
+                    <!-- 桌面通知 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(245,158,11,0.15); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-desktop" style="color: white; font-size: 22px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">桌面通知</h4>
+                                <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6);">在系统托盘显示通知消息</p>
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="desktop-notification" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 声音提示 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(245,158,11,0.15); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-volume-up" style="color: white; font-size: 22px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">声音提示</h4>
+                                <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6);">播放提示音效</p>
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="sound-notification" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 任务完成通知 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(245,158,11,0.15); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-check-circle" style="color: white; font-size: 22px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">任务完成通知</h4>
+                                <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6);">视频处理完成时提醒</p>
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="task-complete" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 错误提醒 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(245,158,11,0.15); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-exclamation-triangle" style="color: white; font-size: 22px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">错误提醒</h4>
+                                <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6);">发生错误时立即通知</p>
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="error-notification" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 更新通知 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(245,158,11,0.15); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-refresh" style="color: white; font-size: 22px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">更新通知</h4>
+                                <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6);">有新版本时提醒</p>
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="update-notification" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 音效设置 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(245,158,11,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🎵</span> 通知音效
+                </h3>
+
+                <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(245,158,11,0.15);">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fa fa-music" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0 0 3px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">音效类型</h4>
+                            <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">选择通知提示音</p>
+                        </div>
+                    </div>
+                    <select name="notification-sound" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(245,158,11,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                        <option value="default" selected>🔔 默认</option>
+                        <option value="gentle">🎐 柔和</option>
+                        <option value="sharp">⚡ 清脆</option>
+                        <option value="silent">🔇 静音</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 保存按钮 -->
+            <div style="display: flex; justify-content: flex-end; gap: 15px;">
+                <button onclick="saveNotificationSettings()" style="padding: 14px 30px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(245,158,11,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <i class="fa fa-save" style="margin-right: 6px;"></i>保存设置
+                </button>
+            </div>
+        </div>
+
+        <!-- 性能设置 - 现代化重新设计 -->
+        <div id="settings-performance" style="display: none;">
+            <!-- 顶部横幅 -->
+            <div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 20px; padding: 35px; margin-bottom: 25px; box-shadow: 0 10px 35px rgba(139,92,246,0.3);">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 18px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa fa-tachometer" style="color: white; font-size: 32px;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h2 style="margin: 0 0 10px 0; font-size: 28px; color: white; font-weight: 900;">性能优化</h2>
+                        <p style="margin: 0; font-size: 14px; color: rgba(255,255,255,0.9);">调整应用性能和资源使用</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 硬件加速 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(139,92,246,0.2);">
+                <h3 style="margin: 0 0 25px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">⚡</span> 硬件加速
+                </h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- GPU加速 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(139,92,246,0.15); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">GPU加速</h4>
+                            <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5;">使用显卡加速视频处理<br><span style="color: rgba(139,92,246,0.8);">大幅提升渲染速度</span></p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="hardware-acceleration" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 多线程处理 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(139,92,246,0.15); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">多线程处理</h4>
+                            <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5;">充分利用CPU多核心<br><span style="color: rgba(139,92,246,0.8);">并行处理任务</span></p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="multi-threading" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI模型设置 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(139,92,246,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🤖</span> AI模型质量
+                </h3>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <!-- 高质量 -->
+                    <div onclick="selectAIQuality('high')" style="background: rgba(15,23,42,0.4); border: 2px solid rgba(139,92,246,0.2); border-radius: 16px; padding: 25px; cursor: pointer; transition: all 0.3s; text-align: center;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#8b5cf6'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(139,92,246,0.2)'">
+                        <div style="font-size: 36px; margin-bottom: 12px;">🌟</div>
+                        <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">高质量</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6); line-height: 1.5;">最佳效果<br>处理较慢</p>
+                    </div>
+
+                    <!-- 平衡 -->
+                    <div onclick="selectAIQuality('medium')" style="background: linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(124,58,237,0.15) 100%); border: 2px solid #8b5cf6; border-radius: 16px; padding: 25px; cursor: pointer; transition: all 0.3s; text-align: center; position: relative;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="position: absolute; top: 10px; right: 10px; padding: 4px 10px; background: #8b5cf6; border-radius: 8px; font-size: 10px; font-weight: 700; color: white;">推荐</div>
+                        <div style="font-size: 36px; margin-bottom: 12px;">⭐</div>
+                        <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">平衡</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6); line-height: 1.5;">质量与速度兼顾<br>适合大多数场景</p>
+                    </div>
+
+                    <!-- 快速 -->
+                    <div onclick="selectAIQuality('fast')" style="background: rgba(15,23,42,0.4); border: 2px solid rgba(139,92,246,0.2); border-radius: 16px; padding: 25px; cursor: pointer; transition: all 0.3s; text-align: center;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#8b5cf6'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(139,92,246,0.2)'">
+                        <div style="font-size: 36px; margin-bottom: 12px;">⚡</div>
+                        <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">快速</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6); line-height: 1.5;">处理迅速<br>质量略降</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 资源管理 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(139,92,246,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">💾</span> 资源管理
+                </h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- 内存限制 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(139,92,246,0.15);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-memory" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 3px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">内存限制</h4>
+                                <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">最大内存使用量</p>
+                            </div>
+                        </div>
+                        <select name="memory-limit" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                            <option value="auto" selected>🔄 自动 (推荐)</option>
+                            <option value="2gb">💾 2GB</option>
+                            <option value="4gb">💾 4GB</option>
+                            <option value="8gb">💾 8GB</option>
+                            <option value="16gb">💾 16GB</option>
+                        </select>
+                    </div>
+
+                    <!-- 性能模式 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(139,92,246,0.15);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-bolt" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 3px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">性能模式</h4>
+                                <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">系统运行策略</p>
+                            </div>
+                        </div>
+                        <select name="performance-mode" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                            <option value="balanced" selected>⚖️ 平衡</option>
+                            <option value="performance">🚀 性能优先</option>
+                            <option value="power-saving">🌿 节能</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 清理策略 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(139,92,246,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🧹</span> 临时文件清理
+                </h3>
+
+                <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(139,92,246,0.15);">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fa fa-clock-o" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0 0 3px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">清理频率</h4>
+                            <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">自动清理临时文件的时机</p>
+                        </div>
+                    </div>
+                    <select name="temp-file-cleanup" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                        <option value="exit">🚪 退出时</option>
+                        <option value="daily">📅 每日</option>
+                        <option value="weekly" selected>📆 每周 (推荐)</option>
+                        <option value="monthly">📊 每月</option>
+                        <option value="never">❌ 从不</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 保存按钮 -->
+            <div style="display: flex; justify-content: flex-end; gap: 15px;">
+                <button onclick="savePerformanceSettings()" style="padding: 14px 30px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(139,92,246,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <i class="fa fa-save" style="margin-right: 6px;"></i>保存设置
+                </button>
+            </div>
+        </div>
+
+        <!-- 高级设置 - 现代化重新设计 -->
+        <div id="settings-advanced" style="display: none;">
+            <!-- 顶部横幅 -->
+            <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 20px; padding: 35px; margin-bottom: 25px; box-shadow: 0 10px 35px rgba(239,68,68,0.3);">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 18px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa fa-cogs" style="color: white; font-size: 32px;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h2 style="margin: 0 0 10px 0; font-size: 28px; color: white; font-weight: 900;">高级设置</h2>
+                        <p style="margin: 0; font-size: 14px; color: rgba(255,255,255,0.9);">专业用户和开发者选项</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FFmpeg路径设置 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(239,68,68,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🎬</span> FFmpeg路径
+                </h3>
+                <div style="background: rgba(15,23,42,0.4); border-radius: 16px; padding: 20px; border: 1px solid rgba(239,68,68,0.15);">
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <input type="text" name="ffmpeg-path" value="C:\ffmpeg\bin\ffmpeg.exe" readonly style="flex: 1; padding: 14px 18px; background: rgba(15,23,42,0.6); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; font-family: 'Consolas', monospace;">
+                        <button onclick="chooseFFmpegPath()" style="padding: 14px 24px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-folder-open" style="margin-right: 6px;"></i>选择文件
+                        </button>
+                    </div>
+                    <p style="margin: 12px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.5);">
+                        <i class="fa fa-info-circle" style="margin-right: 5px;"></i>FFmpeg是视频处理的核心引擎，请确保路径正确
+                    </p>
+                </div>
+            </div>
+
+            <!-- 网络设置 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(239,68,68,0.2);">
+                <h3 style="margin: 0 0 25px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🌐</span> 网络设置
+                </h3>
+
+                <!-- 代理开关 -->
+                <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(239,68,68,0.15); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">启用代理</h4>
+                        <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5;">通过代理服务器访问网络<br><span style="color: rgba(239,68,68,0.8);">适用于受限网络环境</span></p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="proxy-enable" onchange="toggleProxySettings(this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <!-- 代理服务器地址 -->
+                <div id="proxy-settings" style="display: none;">
+                    <div style="background: rgba(15,23,42,0.4); border-radius: 16px; padding: 20px; border: 1px solid rgba(239,68,68,0.15);">
+                        <label style="display: block; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8); margin-bottom: 10px;">代理服务器地址</label>
+                        <input type="text" name="proxy-server" placeholder="http://proxy.example.com:8080" style="width: 100%; padding: 14px 18px; background: rgba(15,23,42,0.6); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; font-family: 'Consolas', monospace;">
+                        <p style="margin: 10px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.5);">
+                            <i class="fa fa-lightbulb-o" style="margin-right: 5px;"></i>格式: http://地址:端口 或 socks5://地址:端口
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统设置 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(239,68,68,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">⚙️</span> 系统设置
+                </h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- 日志级别 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(239,68,68,0.15);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-file-text-o" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 3px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">日志级别</h4>
+                                <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">记录详细程度</p>
+                            </div>
+                        </div>
+                        <select name="log-level" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                            <option value="info" selected>ℹ️ 信息 (推荐)</option>
+                            <option value="warning">⚠️ 警告</option>
+                            <option value="error">❌ 错误</option>
+                            <option value="debug">🐛 调试</option>
+                        </select>
+                    </div>
+
+                    <!-- 自动更新 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(239,68,68,0.15);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-refresh" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 3px 0; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.95);">自动更新</h4>
+                                <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">更新通道选择</p>
+                            </div>
+                        </div>
+                        <select name="auto-update" style="width: 100%; padding: 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; color: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer;">
+                            <option value="stable" selected>✅ 稳定版 (推荐)</option>
+                            <option value="beta">🧪 测试版</option>
+                            <option value="none">🚫 关闭更新</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 开发者选项 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(239,68,68,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">👨‍💻</span> 开发者选项
+                </h3>
+
+                <div style="background: rgba(15,23,42,0.4); padding: 25px; border-radius: 16px; border: 1px solid rgba(239,68,68,0.15); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">开发者模式</h4>
+                        <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5;">启用调试工具和高级功能<br><span style="color: rgba(239,68,68,0.8);">⚠️ 仅供开发和测试使用</span></p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="developer-mode">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 危险区域 -->
+            <div style="background: linear-gradient(135deg, rgba(239,68,68,0.1) 0%, rgba(220,38,38,0.1) 100%); border: 2px solid rgba(239,68,68,0.3); border-radius: 20px; padding: 30px; margin-bottom: 25px;">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(239,68,68,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">⚠️</span> 危险区域
+                </h3>
+
+                <div style="background: rgba(15,23,42,0.4); border-radius: 16px; padding: 25px; border: 1px solid rgba(239,68,68,0.2);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">恢复默认设置</h4>
+                            <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.6;">将所有设置恢复为默认值，此操作不可撤销</p>
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px;">
+                                <p style="margin: 0; font-size: 12px; color: rgba(239,68,68,0.9);">
+                                    <i class="fa fa-exclamation-triangle" style="margin-right: 5px;"></i>警告: 这将清除所有自定义配置
+                                </p>
+                            </div>
+                        </div>
+                        <button onclick="confirmResetSettings()" style="margin-left: 20px; padding: 14px 24px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 15px rgba(239,68,68,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fa fa-undo" style="margin-right: 6px;"></i>重置设置
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 保存按钮 -->
+            <div style="display: flex; justify-content: flex-end; gap: 15px;">
+                <button onclick="saveAdvancedSettings()" style="padding: 14px 30px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(239,68,68,0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <i class="fa fa-save" style="margin-right: 6px;"></i>保存设置
+                </button>
+            </div>
+        </div>
+
+        <script>
+            function toggleProxySettings(enabled) {
+                document.getElementById('proxy-settings').style.display = enabled ? 'block' : 'none';
+            }
+
+            function confirmResetSettings() {
+                if (confirm('确定要恢复所有默认设置吗？此操作不可撤销！')) {
+                    resetSettings();
+                }
+            }
+        </script>
+
+        <!-- 关于 - 现代化重新设计 -->
+        <div id="settings-about" style="display: none;">
+            <!-- 顶部横幅 - 应用信息 -->
+            <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 20px; padding: 50px; margin-bottom: 25px; box-shadow: 0 10px 35px rgba(99,102,241,0.3); text-align: center;">
+                <div style="width: 120px; height: 120px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 30px; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
+                    <span style="font-size: 60px; font-weight: 900; color: white;">JJ</span>
+                </div>
+                <h1 style="margin: 0 0 10px 0; font-size: 36px; color: white; font-weight: 900;">AIJian</h1>
+                <p style="margin: 0 0 20px 0; font-size: 16px; color: rgba(255,255,255,0.9);">智能视频剪辑工具 · AI驱动创作</p>
+                <div style="display: inline-flex; gap: 20px; padding: 15px 30px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 50px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 5px;">版本</div>
+                        <div style="font-size: 18px; font-weight: 700; color: white;">v2.0.0</div>
+                    </div>
+                    <div style="width: 1px; background: rgba(255,255,255,0.3);"></div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 5px;">更新日期</div>
+                        <div style="font-size: 18px; font-weight: 700; color: white;">2025-11-08</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统信息 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(99,102,241,0.2);">
+                <h3 style="margin: 0 0 25px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">💻</span> 系统信息
+                </h3>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    <!-- 操作系统 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 20px; border-radius: 12px; border: 1px solid rgba(99,102,241,0.15); display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fa fa-windows" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">操作系统</div>
+                            <div id="os-info" style="font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Windows 10 64位</div>
+                        </div>
+                    </div>
+
+                    <!-- 处理器 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 20px; border-radius: 12px; border: 1px solid rgba(99,102,241,0.15); display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fa fa-microchip" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">处理器</div>
+                            <div id="cpu-info" style="font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Intel Core i7-10700K</div>
+                        </div>
+                    </div>
+
+                    <!-- 内存 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 20px; border-radius: 12px; border: 1px solid rgba(99,102,241,0.15); display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fa fa-memory" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">内存</div>
+                            <div id="memory-info" style="font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.95);">16.0 GB</div>
+                        </div>
+                    </div>
+
+                    <!-- 显卡 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 20px; border-radius: 12px; border: 1px solid rgba(99,102,241,0.15); display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fa fa-television" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">显卡</div>
+                            <div id="gpu-info" style="font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">NVIDIA GeForce RTX 3070</div>
+                        </div>
+                    </div>
+
+                    <!-- 可用空间 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 20px; border-radius: 12px; border: 1px solid rgba(99,102,241,0.15); display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fa fa-hdd-o" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">可用空间</div>
+                            <div id="disk-info" style="font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.95);">256 GB</div>
+                        </div>
+                    </div>
+
+                    <!-- Python版本 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 20px; border-radius: 12px; border: 1px solid rgba(99,102,241,0.15); display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fa fa-code" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Python版本</div>
+                            <div id="python-info" style="font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.95);">3.13.7</div>
+                        </div>
+                    </div>
+
+                    <!-- FFmpeg版本 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 20px; border-radius: 12px; border: 1px solid rgba(99,102,241,0.15); display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fa fa-film" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">FFmpeg版本</div>
+                            <div id="ffmpeg-info" style="font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.95);">2025-10-30</div>
+                        </div>
+                    </div>
+
+                    <!-- 运行时长 -->
+                    <div style="background: rgba(15,23,42,0.4); padding: 20px; border-radius: 12px; border: 1px solid rgba(99,102,241,0.15); display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fa fa-clock-o" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">运行时长</div>
+                            <div style="font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.95);">2小时 15分钟</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快捷操作 -->
+            <div style="background: rgba(30,41,59,0.4); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 1px solid rgba(99,102,241,0.2);">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">⚡</span> 快捷操作
+                </h3>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <!-- 检查更新 -->
+                    <button onclick="checkUpdate()" style="background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(139,92,246,0.15) 100%); border: 1px solid rgba(99,102,241,0.3); border-radius: 16px; padding: 25px; cursor: pointer; transition: all 0.3s; text-align: center;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#6366f1'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(99,102,241,0.3)'">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                            <i class="fa fa-refresh" style="color: white; font-size: 28px;"></i>
+                        </div>
+                        <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">检查更新</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">查找最新版本</p>
+                    </button>
+
+                    <!-- 帮助中心 -->
+                    <button onclick="openHelpCenter()" style="background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.15) 100%); border: 1px solid rgba(59,130,246,0.3); border-radius: 16px; padding: 25px; cursor: pointer; transition: all 0.3s; text-align: center;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#3b82f6'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(59,130,246,0.3)'">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                            <i class="fa fa-question-circle" style="color: white; font-size: 28px;"></i>
+                        </div>
+                        <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">帮助中心</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">使用文档和教程</p>
+                    </button>
+
+                    <!-- 详细信息 -->
+                    <button onclick="openAboutDialog()" style="background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.15) 100%); border: 1px solid rgba(16,185,129,0.3); border-radius: 16px; padding: 25px; cursor: pointer; transition: all 0.3s; text-align: center;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#10b981'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(16,185,129,0.3)'">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                            <i class="fa fa-info-circle" style="color: white; font-size: 28px;"></i>
+                        </div>
+                        <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95);">详细信息</h4>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.6);">查看完整信息</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 开源协议 -->
+            <div style="background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.1) 100%); border: 1px solid rgba(99,102,241,0.3); border-radius: 20px; padding: 30px; margin-bottom: 25px;">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fa fa-github" style="color: white; font-size: 28px;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.95);">开源协议</h3>
+                        <p style="margin: 0 0 12px 0; font-size: 14px; color: rgba(255,255,255,0.75); line-height: 1.6;">本软件基于 MIT 许可证开源，欢迎贡献代码和反馈问题</p>
+                        <a href="https://github.com/jjyb-ai/smart-auto-cut" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); border-radius: 10px; color: rgba(99,102,241,1); font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.3s;" onmouseover="this.style.background='rgba(99,102,241,0.3)'" onmouseout="this.style.background='rgba(99,102,241,0.2)'">
+                            <i class="fa fa-external-link"></i>
+                            <span>访问项目仓库</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 版权信息 -->
+            <div style="text-align: center; padding: 20px; color: rgba(255,255,255,0.5); font-size: 13px;">
+                <p style="margin: 0;">Copyright © 2025 AIJian. All rights reserved.</p>
+                <p style="margin: 8px 0 0 0;">Made with ❤️ by JJYB Team</p>
+            </div>
+        </div>
+
+                <!-- 系统状态卡片 - 填充底部空白 -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 25px;">
+                    <!-- 存储空间 -->
+                    <div style="background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%); border-radius: 16px; padding: 25px; border: 1px solid rgba(102,126,234,0.2);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-database" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 13px; color: rgba(255,255,255,0.7);">存储空间</div>
+                                <div style="font-size: 20px; font-weight: 700; color: rgba(255,255,255,0.95);">256 MB</div>
+                            </div>
+                        </div>
+                        <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                            <div style="width: 45%; height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);"></div>
+                        </div>
+                        <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 8px;">已使用 45% / 总容量 512 MB</div>
+                    </div>
+
+                    <!-- 项目数量 -->
+                    <div style="background: linear-gradient(135deg, rgba(79,172,254,0.1) 0%, rgba(0,242,254,0.1) 100%); border-radius: 16px; padding: 25px; border: 1px solid rgba(79,172,254,0.2);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-folder-open" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 13px; color: rgba(255,255,255,0.7);">项目总数</div>
+                                <div style="font-size: 20px; font-weight: 700; color: rgba(255,255,255,0.95);">12 个</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: rgba(255,255,255,0.7);">
+                            <div>✅ 已完成: 8 个</div>
+                            <div style="margin-top: 4px;">⏳ 进行中: 4 个</div>
+                        </div>
+                    </div>
+
+                    <!-- 运行状态 -->
+                    <div style="background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,150,105,0.1) 100%); border-radius: 16px; padding: 25px; border: 1px solid rgba(16,185,129,0.2);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-check-circle" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 13px; color: rgba(255,255,255,0.7);">系统状态</div>
+                                <div style="font-size: 20px; font-weight: 700; color: #10b981;">正常</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: rgba(255,255,255,0.7);">
+                            <div>🔌 API连接: 正常</div>
+                            <div style="margin-top: 4px;">⚡ 运行时长: 2小时15分</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </main>
+    <!-- 右侧内容区域结束 -->
+
+</div>
+<!-- 设置容器结束 -->
+{% endblock %}
+
+{% block extra_js %}
+<script src="../static/js/jquery-3.6.0.min.js"></script>
+<script src="../static/js/settools.js"></script>
+<script src="https://cdn.staticfile.org/layui/2.8.0/layui.js"></script>
+<script type="text/javascript">
+    // 切换标签页（点击左侧菜单时调用） - 核心功能
+    window.switchTab = function(event, tabId) 
+    {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        console.log('🔄 切换标签页:', tabId);
+
+        // 更新菜单激活状态（原生JS）
+        var allMenuLinks = document.querySelectorAll('.menu-link');
+        allMenuLinks.forEach(function(link) {
+            link.classList.remove('active');
+        });
+
+        if (event && event.currentTarget) {
+            event.currentTarget.classList.add('active');
+        } else if (event && event.target) {
+            var targetLink = event.target.closest('.menu-link');
+            if (targetLink) {
+                targetLink.classList.add('active');
+            }
+        }
+
+        // 隐藏所有内容区域（原生JS）
+        var allSections = document.querySelectorAll('[id^="settings-"]');
+        allSections.forEach(function(section) {
+            section.style.display = 'none';
+            section.classList.remove('active-section');
+        });
+
+        // 显示选中的内容区域（原生JS）
+        var targetSection = document.getElementById('settings-' + tabId);
+        if (targetSection) {
+            targetSection.style.display = 'block';
+            targetSection.classList.add('active-section');
+            console.log('✅ 已切换到:', tabId);
+
+            // 平滑滚动到顶部（原生JS）
+            var settingsContent = document.querySelector('.settings-content');
+            if (settingsContent) {
+                settingsContent.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }
+        } else {
+            console.error('❌ 未找到内容区域:', 'settings-' + tabId);
+        }
+    };
+
+    layui.use(['element', 'layer', 'form', 'slider'], function() 
+    {
+        var element = layui.element;
+        var layer = layui.layer;
+        var form = layui.form;
+        var slider = layui.slider;
+        $(function() {
+            console.log('======= settings页面初始化开始 ======');
+            
+            // 确保API配置标签页默认显示（原生JS）
+            var apiSection = document.getElementById('settings-api');
+            if (apiSection) {
+                apiSection.style.display = 'block';
+                apiSection.classList.add('active-section');
+            }
+
+            // 隐藏其他标签页（原生JS）
+            var allSections = document.querySelectorAll('[id^="settings-"]');
+            allSections.forEach(function(section) {
+                if (section.id !== 'settings-api') {
+                    section.style.display = 'none';
+                    section.classList.remove('active-section');
+                }
+            });
+
+            // 确保API配置菜单项激活（原生JS）
+            var allMenuLinks = document.querySelectorAll('.menu-link');
+            allMenuLinks.forEach(function(link) {
+                if (link.getAttribute('data-tab') === 'api') {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+
+            // 绑定菜单点击事件（防止onclick失效的备用方案）
+            $('.menu-link').off('click').on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var tabId = $(this).data('tab');
+                console.log('📍 菜单点击事件触发:', tabId);
+                if (typeof window.switchTab === 'function') {
+                    window.switchTab(e, tabId);
+                } else {
+                    console.error('❌ switchTab 函数不存在！');
+                }
+            });
+            // console.log('✅ 菜单点击事件已绑定，共', $('.menu-link').length, '个菜单项');
+            
+            loadSettings();
+            loadAPIConfig();
+            initTabs();
+            initThemeSelector();
+            initColorSelector();
+            initProxyToggle();
+            initSliders();
+
+            // setTimeout(getSystemInfo, 1000);
+            // fetchSystemMetrics();
+            // setInterval(fetchSystemMetrics, 15000);
+
+            console.log('✅ 设置页面初始化完成！所有按钮功能已就绪。');
+        });
+
+        // 加载设置
+        function loadSettings() {
+            console.log('============开始加载loadSettings=================');
+            var loading = showLoading();
+            apiRequest('/api/settings', 'GET', {}, function(data) {
+                hideLoading(loading);
+                console.log(`===loadSettings API响应数据:`, data);
+                applySettings(data);
+            }, function(error) {
+                hideLoading(loading);
+                layer.msg('加载设置失败', {icon: 2});
+            });
+        }
+        
+        function loadAPIConfig() {
+            console.log('============开始加载loadAPIConfig=================');
+            apiRequest('/api/settings/api-config', 'GET', {}, function(response) {
+                if (response.code === 0 && response.data) {
+                    var config = response.data;
+                    console.log(`===loadAPIConfig API响应数据:`, response);
+                    updateKeySavedIndicators(config);
+                    // 1. OpenAI GPT-4
+                    $('input[name="custom_api_key"]').val(config.custom_api_key || '');
+                    $('input[name="custom_base_url"]').val(config.custom_base_url || '');
+                    $('select[name="custom_model"]').val(config.custom_model || '');
+                    // 10. GPT-4V (Vision)
+                    $('input[name="gpt4v_api_key"]').val(config.gpt4v_api_key || '');
+                    $('select[name="gpt4v_model"]').val(config.gpt4v_model || 'gpt-4-vision-preview');
+                    // 11. Claude Vision
+                    $('input[name="claude_vision_api_key"]').val(config.claude_vision_api_key || '');
+                    // 12. Azure TTS
+                    $('input[name="azure_tts_key"]').val(config.azure_tts_key || '');
+                    $('select[name="azure_tts_region"]').val(config.azure_tts_region || 'eastasia');
+
+                    // 重新渲染表单组件
+                    form.render('select');
+
+                    // 统计已配置的API数量
+                    var configuredCount = 0;
+                    for (var key in config) {
+                        if (config[key] && config[key] !== '') {
+                            configuredCount++;
+                        }
+                    }
+                    // console.log(`📊 已配置 ${configuredCount} 项API`);
+                } else {
+                    console.log('📭 暂无已保存的API配置');
+                }
+            }, function(error) {
+                console.error('❌ 加载API配置失败:', error);
+            });
+        }
+        function initTabs() {
+            element.on('tab(settings-tab)', function(data) {
+                var layId = this.getAttribute('lay-id');
+                // 隐藏所有设置面板
+                $('.layui-card[id^="settings-"]').hide();
+                $('[id^="settings-"]').hide();
+
+                // 显示选中的面板
+                $('#settings-' + layId).show();
+            });
+        }
+        function initThemeSelector() {
+            $('.layui-btn-group[lay-filter="theme-group"] .layui-btn').on('click', function() {
+                var theme = $(this).data('theme');
+                $(this).siblings().removeClass('layui-btn-primary');
+                $(this).addClass('layui-btn-primary');
+                applyTheme(theme);
+            });
+        }
+        function initColorSelector() {
+            $('.w-full.h-10.rounded').on('click', function() {
+                var color = $(this).data('color');
+                $(this).siblings().css('border', 'none');
+                $(this).css('border', '2px solid #009688');
+                applyThemeColor(color);
+            });
+        }
+        function initProxyToggle() {
+            form.on('switch(proxy-enable)', function(data) {
+                if (data.elem.checked) {
+                    $('#proxy-settings').show();
+                } else {
+                    $('#proxy-settings').hide();
+                }
+            });
+        }
+        function initSliders() {
+            slider.render({
+                elem: '[name="opacity"]',
+                range: false,
+                min: 50,
+                max: 100,
+                value: 80
+            });
+        }
+        
+        // ========== API配置函数 ==========
+        // 测试Custom连接
+        window.testCustom = function() {
+            console.log('======testCustom=====');
+            var apiKey = $('input[name="custom_api_key"]').val();
+            var baseUrl = $('input[name="custom_base_url"]').val();
+            var model = $('select[name="custom_model"]').val();
+
+            if (!apiKey) {
+                layer.msg('请先输入Custom API Key', {icon: 2});
+                return;
+            }
+
+            var loading = layer.load(2, {content: '测试连接中...'});
+            apiRequest('/api/test/custom', 'POST', {
+                api_key: apiKey,
+                base_url: baseUrl,
+                model: model
+            }, function(data) {
+                layer.close(loading);
+                layer.msg('✅ Custom连接成功！', {icon: 1, time: 2000});
+            }, function(error) {
+                layer.close(loading);
+                layer.msg('❌ 连接失败: ' + error, {icon: 2, time: 3000});
+            });
+        };
+
+        // 测试Claude Vision连接
+        window.testClaudeVision = function() {
+            var apiKey = $('input[name="claude_vision_api_key"]').val();
+
+            if (!apiKey) {
+                layer.msg('请先输入Claude Vision API Key', {icon: 2});
+                return;
+            }
+
+            var loading = layer.load(2, {content: '测试Claude Vision连接中...'});
+            apiRequest('/api/test/claude-vision', 'POST', {
+                api_key: apiKey
+            }, function(data) {
+                layer.close(loading);
+                var msg = (data && data.msg) ? data.msg : 'Claude Vision连接测试完成';
+                layer.msg('✅ ' + msg, {icon: 1, time: 2000});
+            }, function(error) {
+                layer.close(loading);
+                layer.msg('❌ 连接失败: ' + error, {icon: 2, time: 3000});
+            });
+        };
+
+        // 测试Azure TTS连接
+        window.testAzureTTS = function() {
+            var apiKey = $('input[name="azure_tts_key"]').val();
+            var region = $('select[name="azure_tts_region"]').val();
+
+            if (!apiKey) {
+                layer.msg('请先输入Azure TTS Subscription Key', {icon: 2});
+                return;
+            }
+
+            var loading = layer.load(2, {content: '测试Azure TTS连接中...'});
+            apiRequest('/api/test/azure-tts', 'POST', {
+                subscription_key: apiKey,
+                region: region
+            }, function(data) {
+                layer.close(loading);
+                var msg = (data && data.msg) ? data.msg : 'Azure TTS连接测试完成';
+                layer.msg('✅ ' + msg, {icon: 1, time: 2000});
+            }, function(error) {
+                layer.close(loading);
+                layer.msg('❌ 连接失败: ' + error, {icon: 2, time: 3000});
+            });
+        };
+
+        // ========== 批量操作和实用功能 ==========
+        // 批量测试所有模型连接
+        window.testAllModels = function() {
+            layer.confirm('确定要测试所有已配置的模型连接吗？<br><br><span style="color: #f59e0b;">⚠️ 这将依次测试12个模型，可能需要较长时间</span>', {
+                icon: 3,
+                title: '批量测试确认',
+                btn: ['开始测试', '取消']
+            }, function(index) {
+                layer.close(index);
+                var models = [
+                    {name: 'Custom', test: testCustom, key: 'custom_api_key'},
+                    {name: 'Claude Vision', test: testClaudeVision, key: 'claude_vision_api_key'},
+                    {name: 'Azure TTS', test: testAzureTTS, key: 'azure_tts_key'}
+                ];
+                var results = [];
+                var current = 0;
+                var testNext = function() {
+                    if (current >= models.length) {
+                        // 所有测试完成，显示结果
+                        var successCount = results.filter(r => r.success).length;
+                        var failCount = results.filter(r => !r.success).length;
+
+                        var html = '<div style="max-height: 400px; overflow-y: auto;">';
+                        html += '<div style="margin-bottom: 15px; padding: 10px; background: #f0f9ff; border-radius: 5px;">';
+                        html += '<strong>测试完成！</strong><br>';
+                        html += '成功: <span style="color: #10b981;">' + successCount + '</span> | ';
+                        html += '失败: <span style="color: #ef4444;">' + failCount + '</span>';
+                        html += '</div>';
+
+                        results.forEach(function(r) {
+                            var icon = r.success ? '✅' : '❌';
+                            var color = r.success ? '#10b981' : '#ef4444';
+                            html += '<div style="padding: 8px; border-left: 3px solid ' + color + '; margin-bottom: 8px; background: rgba(255,255,255,0.05);">';
+                            html += icon + ' ' + r.model;
+                            html += '</div>';
+                        });
+                        html += '</div>';
+
+                        layer.open({
+                            type: 1,
+                            title: '批量测试结果',
+                            content: html,
+                            area: ['500px', '600px'],
+                            btn: ['关闭']
+                        });
+                        return;
+                    }
+
+                    var model = models[current];
+                    var apiKey = $('input[name="' + model.key + '"]').val();
+                    if (!apiKey) {
+                        results.push({model: model.name, success: false});
+                        current++;
+                        testNext();
+                        return;
+                    }
+
+                    layer.msg('正在测试 ' + model.name + '...', {time: 1000});
+                    try {
+                        var p = model.test && model.test();
+                        if (p && typeof p.then === 'function') {
+                            p.then(function(ok) {
+                                results.push({model: model.name, success: !!ok});
+                                current++;
+                                testNext();
+                            }).catch(function(e) {
+                                console.error('❌ 批量测试失败:', model.name, e);
+                                results.push({model: model.name, success: false});
+                                current++;
+                                testNext();
+                            });
+                        } else {
+                            results.push({model: model.name, success: !!p});
+                            current++;
+                            testNext();
+                        }
+                    } catch (e) {
+                        console.error('❌ 批量测试执行异常:', model.name, e);
+                        results.push({model: model.name, success: false});
+                        current++;
+                        testNext();
+                    }
+                };
+
+                testNext();
+            });
+        };
+
+        // 导出配置
+        window.exportConfig = function() {
+            var config = {
+                exported_at: new Date().toISOString(),
+                version: '1.0',
+                models: {
+                    openai: {
+                        api_key: $('input[name="custom_api_key"]').val(),
+                        base_url: $('input[name="custom_base_url"]').val(),
+                        model: $('select[name="custom_model"]').val()
+                    },
+                    gpt4v: {
+                        api_key: $('input[name="gpt4v_api_key"]').val(),
+                        model: $('select[name="gpt4v_model"]').val()
+                    },
+                    claude_vision: {
+                        api_key: $('input[name="claude_vision_api_key"]').val()
+                    },
+                    azure_tts: {
+                        key: $('input[name="azure_tts_key"]').val(),
+                        region: $('select[name="azure_tts_region"]').val()
+                    }
+                }
+            };
+
+            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config, null, 2));
+            var downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "jjyb_api_config_" + new Date().getTime() + ".json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+
+            layer.msg('✅ 配置已导出为JSON文件', {icon: 1, time: 2000});
+        };
+
+        // 导入配置
+        window.importConfig = function() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        var config = JSON.parse(event.target.result);
+
+                        if (!config.models) {
+                            layer.msg('❌ 配置文件格式错误', {icon: 2});
+                            return;
+                        }
+
+                        layer.confirm('确定要导入配置吗？<br><br><span style="color: #f59e0b;">⚠️ 这将覆盖当前所有配置</span>', {
+                            icon: 3,
+                            title: '导入确认',
+                            btn: ['确定导入', '取消']
+                        }, function(index) {
+                            layer.close(index);
+
+                            // 导入OpenAI
+                            if (config.models.openai) {
+                                $('input[name="custom_api_key"]').val(config.models.openai.api_key || '');
+                                $('input[name="custom_base_url"]').val(config.models.openai.base_url || '');
+                                $('select[name="custom_model"]').val(config.models.openai.model || '');
+                            }
+
+                            // 导入Claude
+                            if (config.models.anthropic) {
+                                $('input[name="anthropic_api_key"]').val(config.models.anthropic.api_key || '');
+                                $('select[name="anthropic_model"]').val(config.models.anthropic.model || '');
+                            }
+
+                            // 导入Gemini
+                            if (config.models.gemini) {
+                                $('input[name="gemini_api_key"]').val(config.models.gemini.api_key || '');
+                            }
+
+                            // 导入Kimi
+                            if (config.models.kimi) {
+                                $('input[name="kimi_api_key"]').val(config.models.kimi.api_key || '');
+                            }
+
+                            // 导入讯飞星火
+                            if (config.models.spark) {
+                                $('input[name="spark_api_key"]').val(config.models.spark.api_key || '');
+                                $('input[name="spark_api_secret"]').val(config.models.spark.api_secret || '');
+                            }
+
+                            // 导入通义千问
+                            if (config.models.qwen) {
+                                $('input[name="qwen_api_key"]').val(config.models.qwen.api_key || '');
+                            }
+
+                            // 导入文心一言
+                            if (config.models.ernie) {
+                                $('input[name="ernie_api_key"]').val(config.models.ernie.api_key || '');
+                                $('input[name="ernie_secret_key"]').val(config.models.ernie.secret_key || '');
+                            }
+
+                            // 导入ChatGLM
+                            if (config.models.chatglm) {
+                                $('input[name="chatglm_api_key"]').val(config.models.chatglm.api_key || '');
+                            }
+
+                            // 导入DeepSeek
+                            if (config.models.deepseek) {
+                                $('input[name="deepseek_api_key"]').val(config.models.deepseek.api_key || '');
+                            }
+
+                            // 导入GPT-4V
+                            if (config.models.gpt4v) {
+                                $('input[name="gpt4v_api_key"]').val(config.models.gpt4v.api_key || '');
+                                $('select[name="gpt4v_model"]').val(config.models.gpt4v.model || '');
+                            }
+
+                            // 导入Claude Vision
+                            if (config.models.claude_vision) {
+                                $('input[name="claude_vision_api_key"]').val(config.models.claude_vision.api_key || '');
+                            }
+
+                            // 导入Azure TTS
+                            if (config.models.azure_tts) {
+                                $('input[name="azure_tts_key"]').val(config.models.azure_tts.key || '');
+                                $('select[name="azure_tts_region"]').val(config.models.azure_tts.region || '');
+                            }
+
+                            form.render('select');
+                            layer.msg('✅ 配置导入成功！', {icon: 1, time: 2000});
+                        });
+                    } catch (e) {
+                        layer.msg('❌ 配置文件解析失败: ' + e.message, {icon: 2, time: 3000});
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        };
+
+        // 清空所有配置
+        window.clearAllConfig = function() {
+            layer.confirm('确定要清空所有API配置吗？<br><br><span style="color: #ef4444;">⚠️ 此操作不可恢复！</span>', {
+                icon: 0,
+                title: '危险操作确认',
+                btn: ['确定清空', '取消']
+            }, function(index) {
+                layer.close(index);
+
+                // 清空所有输入框
+                $('input[name$="_api_key"], input[name$="_secret_key"], input[name$="_secret"], input[name$="_tts_key"]').val('');
+                $('input[name="custom_base_url"]').val('https://api.openai.com/v1');
+
+                // 重置所有下拉菜单为默认值
+                $('select[name="custom_model"]').val('gpt-3.5-turbo');
+                $('select[name="anthropic_model"]').val('claude-3-sonnet-20240229');
+                $('select[name="gpt4v_model"]').val('gpt-4-vision-preview');
+                $('select[name="azure_tts_region"]').val('eastasia');
+
+                form.render('select');
+                layer.msg('✅ 所有配置已清空！', {icon: 1, time: 2000});
+            });
+        };
+
+        // ===== 选择路径（浏览器环境能力有限，提供手动填写） =====
+        function chooseSavePath(){
+            var v = prompt('请输入保存目录的绝对路径（例如 D:/Videos/Exports）：', $('input[name="save-path"]').val()||'');
+            if(v!=null){ $('input[name="save-path"]').val(v); }
+        }
+        function chooseFFmpegPath(){
+            var v = prompt('请输入 FFmpeg 可执行文件路径（例如 C:/ffmpeg/bin/ffmpeg.exe）：', $('input[name="ffmpeg-path"]').val()||'');
+            if(v!=null){ $('input[name="ffmpeg-path"]').val(v); }
+        }
+
+        // ===== 统测所有已配置模型 =====
+        async function testAllConnections(){
+            const loading = showLoading('正在测试所有连接...');
+            try{ 
+                await testAllModels(); hideLoading(loading); 
+            }catch(e){ 
+                hideLoading(loading); 
+            }
+        }
+        
+
+        // 应用设置
+        function applySettings(settings) {
+            // 外观设置
+            if (settings.appearance) {
+                // 主题
+                $('.layui-btn-group[lay-filter="theme-group"] .layui-btn').removeClass('layui-btn-primary');
+                $(`.layui-btn-group[lay-filter="theme-group"] .layui-btn[data-theme="${settings.appearance.theme}"]`).addClass('layui-btn-primary');
+                applyTheme(settings.appearance.theme);
+
+                // 透明度
+                $('input[name="opacity"]').val(settings.appearance.opacity || 80);
+
+
+            // 编辑器右侧栏默认折叠偏好（来自后端设置），同步到开关与本地缓存
+            try{
+                var sw = document.getElementById('editor-auto-collapse-switch');
+                if (sw) {
+                    var v = (settings && settings.editor_auto_collapse_right_panel);
+                    var auto = !(v === false || v === '0' || v === 0 || (typeof v === 'string' && v.toLowerCase() === 'false'));
+                    sw.checked = auto;
+                    try{ localStorage.setItem('editorAutoCollapsePreference', auto ? '1' : '0'); }catch(_){ }
+                }
+            }catch(_){}
+
+                // 字体大小
+                $('select[name="font-size"]').val(settings.appearance.fontSize || 'normal');
+
+                // 图标大小
+                $('select[name="icon-size"]').val(settings.appearance.iconSize || 'normal');
+
+                // 动画效果
+                $('input[name="animation"]').prop('checked', settings.appearance.animation !== false);
+
+                // 玻璃态效果
+                $('input[name="glass-effect"]').prop('checked', settings.appearance.glassEffect !== false);
+
+                // 主题颜色
+                $('.w-full.h-10.rounded').css('border', 'none');
+                $(`.w-full.h-10.rounded[data-color="${settings.appearance.themeColor || '#1890ff'}"]`).css('border', '2px solid #009688');
+                applyThemeColor(settings.appearance.themeColor || '#1890ff');
+                try{ window.__settingsState.appearance_theme = settings.appearance.theme || 'system'; }catch(e){}
+                try{ window.__settingsState.appearance_themeColor = settings.appearance.themeColor || '#1890ff'; }catch(e){}
+            }
+
+            // 语言设置
+            if (settings.language) {
+                $('select[name="app-language"]').val(settings.language.app || 'zh-CN');
+                $('select[name="asr-language"]').val(settings.language.asr || 'zh-CN');
+                $('select[name="tts-language"]').val(settings.language.tts || 'zh-CN');
+            }
+
+            // 文件设置
+            if (settings.file) {
+                $('input[name="save-path"]').val(settings.file.savePath || '');
+                $('select[name="export-format"]').val(settings.file.exportFormat || 'mp4');
+                $('select[name="export-quality"]').val(settings.file.exportQuality || 'medium');
+                $('input[name="auto-save"]').prop('checked', settings.file.autoSave !== false);
+                $('select[name="auto-save-interval"]').val(settings.file.autoSaveInterval || '3');
+            }
+
+            // 通知设置
+            if (settings.notification) {
+                $('input[name="desktop-notification"]').prop('checked', settings.notification.desktop !== false);
+                $('input[name="sound-notification"]').prop('checked', settings.notification.sound !== false);
+                $('input[name="task-complete"]').prop('checked', settings.notification.taskComplete !== false);
+                $('input[name="error-notification"]').prop('checked', settings.notification.error !== false);
+                $('input[name="update-notification"]').prop('checked', settings.notification.update !== false);
+                $('select[name="notification-sound"]').val(settings.notification.soundType || 'default');
+            }
+
+            // 性能设置
+            if (settings.performance) {
+                $('input[name="hardware-acceleration"]').prop('checked', settings.performance.hardwareAcceleration !== false);
+                $('input[name="multi-threading"]').prop('checked', settings.performance.multiThreading !== false);
+                $('select[name="ai-model-quality"]').val(settings.performance.aiModelQuality || 'medium');
+                $('select[name="memory-limit"]').val(settings.performance.memoryLimit || 'auto');
+                $('select[name="temp-file-cleanup"]').val(settings.performance.tempFileCleanup || 'weekly');
+                $('select[name="performance-mode"]').val(settings.performance.mode || 'balanced');
+            }
+
+            // 高级设置
+            if (settings.advanced) {
+                $('input[name="ffmpeg-path"]').val(settings.advanced.ffmpegPath || '');
+                $('input[name="proxy-enable"]').prop('checked', settings.advanced.proxyEnable === true);
+                $('input[name="proxy-server"]').val(settings.advanced.proxyServer || '');
+                $('select[name="log-level"]').val(settings.advanced.logLevel || 'info');
+                $('select[name="auto-update"]').val(settings.advanced.autoUpdate || 'stable');
+                $('input[name="developer-mode"]').prop('checked', settings.advanced.developerMode === true);
+
+                // 显示/隐藏代理设置
+                if (settings.advanced.proxyEnable === true) {
+                    $('#proxy-settings').show();
+                } else {
+                    $('#proxy-settings').hide();
+                }
+            }
+
+            form.render();
+        }
+
+        // 应用主题
+        function applyTheme(theme) {
+            switch(theme) {
+                case 'dark':
+                    $('body').addClass('dark-theme').removeClass('light-theme');
+                    break;
+                case 'light':
+                    $('body').addClass('light-theme').removeClass('dark-theme');
+                    break;
+                case 'system':
+                    // 检测系统主题
+                    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                        $('body').addClass('dark-theme').removeClass('light-theme');
+                    } else {
+                        $('body').addClass('light-theme').removeClass('dark-theme');
+                    }
+                    break;
+            }
+        }
+
+        // 应用主题颜色
+        function applyThemeColor(color) {
+            // 这里可以动态修改主题颜色
+            console.log('应用主题颜色:', color);
+        }
+
+        // 保存设置
+        function saveSettings() {
+            var settings = {
+                appearance: {
+                    theme: (window.__settingsState && window.__settingsState.appearance_theme) || $('.layui-btn-group[lay-filter="theme-group"] .layui-btn-primary').data('theme') || 'system',
+                    opacity: $('input[name="opacity"]').val(),
+                    fontSize: $('select[name="font-size"]').val(),
+                    iconSize: $('select[name="icon-size"]').val(),
+                    animation: $('input[name="animation"]').prop('checked'),
+                    glassEffect: $('input[name="glass-effect"]').prop('checked'),
+                    themeColor: (window.__settingsState && window.__settingsState.appearance_themeColor) || $('.w-full.h-10.rounded[style*="2px solid #009688"]').data('color') || '#1890ff'
+                },
+                language: {
+                    app: $('select[name="app-language"]').val(),
+                    asr: $('select[name="asr-language"]').val(),
+                    tts: $('select[name="tts-language"]').val()
+                },
+                file: {
+                    savePath: $('input[name="save-path"]').val(),
+                    exportFormat: $('select[name="export-format"]').val(),
+                    exportQuality: $('select[name="export-quality"]').val(),
+                    autoSave: $('input[name="auto-save"]').prop('checked'),
+                    autoSaveInterval: $('select[name="auto-save-interval"]').val()
+                },
+                notification: {
+                    desktop: $('input[name="desktop-notification"]').prop('checked'),
+                    sound: $('input[name="sound-notification"]').prop('checked'),
+                    taskComplete: $('input[name="task-complete"]').prop('checked'),
+                    error: $('input[name="error-notification"]').prop('checked'),
+                    update: $('input[name="update-notification"]').prop('checked'),
+                    soundType: $('select[name="notification-sound"]').val()
+                },
+                performance: {
+                    hardwareAcceleration: $('input[name="hardware-acceleration"]').prop('checked'),
+                    multiThreading: $('input[name="multi-threading"]').prop('checked'),
+                    aiModelQuality: $('select[name="ai-model-quality"]').val(),
+                    memoryLimit: $('select[name="memory-limit"]').val(),
+                    tempFileCleanup: $('select[name="temp-file-cleanup"]').val(),
+                    mode: $('select[name="performance-mode"]').val()
+                },
+                advanced: {
+                    ffmpegPath: $('input[name="ffmpeg-path"]').val(),
+                    proxyEnable: $('input[name="proxy-enable"]').prop('checked'),
+                    proxyServer: $('input[name="proxy-server"]').val(),
+                    logLevel: $('select[name="log-level"]').val(),
+                    autoUpdate: $('select[name="auto-update"]').val(),
+                    developerMode: $('input[name="developer-mode"]').prop('checked')
+                }
+            };
+
+            var loading = showLoading();
+            apiRequest('/api/settings', 'POST', settings, function(data) {
+                hideLoading(loading);
+                layer.msg('设置保存成功', {icon: 1});
+            }, function(error) {
+                hideLoading(loading);
+                layer.msg('保存设置失败', {icon: 2});
+            });
+        }
+
+        // 取消设置
+        function cancelSettings() {
+            loadSettings();
+            layer.msg('已取消更改', {icon: 1});
+        }
+
+        // 恢复默认设置
+        function resetAllSettings() {
+            confirmAction('恢复默认设置', '确定要将所有设置恢复为默认值吗？', function() {
+                var loading = showLoading();
+                apiRequest('/api/settings/reset', 'POST', {}, function(data) {
+                    hideLoading(loading);
+                    loadSettings();
+                    layer.msg('已恢复默认设置', {icon: 1});
+                }, function(error) {
+                    hideLoading(loading);
+                    layer.msg('恢复默认设置失败', {icon: 2});
+                });
+            });
+        }
+
+        // 测试所有连接
+        async function testAllConnections() {
+            const loading = showLoading('正在测试所有API连接...');
+            try{
+                await testAllModels();
+                hideLoading(loading);
+            }catch(e){ hideLoading(loading); }
+        }
+
+        // 保存单个模型配置（实时保存）
+        window.saveModelConfig = async function(modelType){
+            try{
+                console.log('🔑 保存'+modelType+'配置...');
+                const payloadSettings={};
+                const payloadConfig={};
+
+                // 根据模型类型收集配置
+                if(modelType==='custom'){
+                    addIfValid(payloadSettings,'custom_api_key', getVal('custom_api_key'));
+                    addIfValid(payloadSettings,'custom_base_url', getVal('custom_base_url'));
+                    payloadSettings.custom_model = getVal('custom_model');
+                    addIfValid(payloadConfig,'custom_api_key', getVal('custom_api_key'));
+                    addIfValid(payloadConfig,'custom_base_url', getVal('custom_base_url'));
+                    payloadConfig.custom_model = getVal('custom_model');
+                }else if(modelType==='claude_vision'){
+                    addIfValid(payloadSettings,'claude_vision_api_key', getVal('claude_vision_api_key'));
+                    addIfValid(payloadConfig,'claude_vision_api_key', getVal('claude_vision_api_key'));
+                }else if(modelType==='azure_tts'){
+                    addIfValid(payloadSettings,'azure_tts_key', getVal('azure_tts_key'));
+                    addIfValid(payloadSettings,'azure_tts_region', getVal('azure_tts_region'));
+                    addIfValid(payloadConfig,'azure_tts_key', getVal('azure_tts_key'));
+                    addIfValid(payloadConfig,'azure_tts_region', getVal('azure_tts_region'));
+                }
+
+                // 检查是否有配置
+                if(Object.keys(payloadSettings).length===0 && Object.keys(payloadConfig).length===0){
+                    layer.msg('⚠️ 请先填写配置信息',{icon:0,time:2000});
+                    return;
+                }
+                console.log('📝 准备保存配置:', {payloadSettings, payloadConfig});
+
+                // 检查 payloadSettings 是否为空
+                if(Object.keys(payloadSettings).length > 0) {
+                    console.log('📤 发送到 /api/settings/api-config:', payloadSettings);
+                }
+                // 检查 payloadConfig 是否为空
+                if(Object.keys(payloadConfig).length > 0) {
+                    console.log('📤 发送到 /api/config/save:', payloadConfig);
+                }
+
+                const loading=layer.msg('正在保存...',{icon:16,time:0,shade:0.3});
+                // 调用两个API保存
+                let r1 = {code: -1, message: '未调用'};
+                let r2 = {code: -1, message: '未调用'};
+                if(Object.keys(payloadSettings).length > 0) {
+                    r1 = await fetch('/api/settings/api-config',{
+                        method:'POST',
+                        headers:{'Content-Type':'application/json'},
+                        body:JSON.stringify(payloadSettings)
+                    }).then(r=>r.json()).catch(e=>{
+                        console.error('❌ API1 请求失败:', e);
+                        return {code:-1,message:e.message};
+                    });
+                    console.log('📥 API1 响应:', r1);
+                }
+
+                if(Object.keys(payloadConfig).length > 0) {
+                    r2 = await fetch('/api/config/save',{
+                        method:'POST',
+                        headers:{'Content-Type':'application/json'},
+                        body:JSON.stringify(payloadConfig)
+                    }).then(r=>r.json()).catch(e=>{
+                        console.error('❌ API2 请求失败:', e);
+                        return {code:-1,message:e.message};
+                    });
+                    console.log('📥 API2 响应:', r2);
+                }
+
+                // 重新加载配置
+                await fetch('/api/config/reload',{method:'POST'}).catch(()=>{});
+
+                layer.close(loading);
+
+                if((r1&&r1.code===0)||(r2&&r2.code===0)){
+                    layer.msg('✅ 配置已保存',{icon:1,time:2000});
+                    console.log('✅ 配置保存成功');
+                }else{
+                    const errMsg=(r1&&r1.message)||(r2&&r2.message)||'未知错误';
+                    layer.msg('❌ 保存失败: '+errMsg,{icon:2,time:3000});
+                    console.error('❌ 保存失败:',{r1,r2});
+                }
+            }catch(e){
+                layer.msg('❌ 保存失败: '+e.message,{icon:2,time:3000});
+                console.error('❌ 保存异常:',e);
+            }
+        }
+
+        
+        async function saveAllConfig(){
+            try{
+                console.log('🔑 开始保存API配置...');
+                const payloadSettings={};
+                addIfValid(payloadSettings,'custom_api_key',getVal('custom_api_key'));
+                addIfValid(payloadSettings,'claude_vision_api_key',getVal('claude_vision_api_key'));
+                addIfValid(payloadSettings,'azure_tts_key',getVal('azure_tts_key'));
+                addIfValid(payloadSettings,'azure_tts_region',getVal('azure_tts_region'));
+                // 本地 Voice Clone 引擎配置
+                var enableVC = document.querySelector('[name="enable_voice_clone"]');
+                if(enableVC){ payloadSettings.enable_voice_clone = enableVC.checked; }
+                addIfValid(payloadSettings,'voice_clone_model_path',getVal('voice_clone_model_path'));
+                addIfValid(payloadSettings,'voice_clone_executable_path',getVal('voice_clone_executable_path'));
+                addIfValid(payloadSettings,'custom_base_url',getVal('custom_base_url'));
+                payloadSettings.custom_model=(document.querySelector('[name="custom_model"]')||{}).value||'';
+                payloadSettings.anthropic_model=(document.querySelector('[name="anthropic_model"]')||{}).value||'';
+                payloadSettings.gemini_model=(document.querySelector('[name="gemini_model"]')||{}).value||'';
+                payloadSettings.qwen_model=(document.querySelector('[name="qwen_model"]')||{}).value||'';
+                
+                const payloadConfig={};
+                addIfValid(payloadConfig,'custom_api_key',getVal('custom_api_key'));
+                addIfValid(payloadConfig,'custom_base_url',getVal('custom_base_url'));
+                payloadConfig.custom_model=(document.querySelector('[name="custom_model"]')||{}).value||'';
+                addIfValid(payloadConfig,'claude_vision_api_key',getVal('claude_vision_api_key'));
+                addIfValid(payloadConfig,'azure_tts_key',getVal('azure_tts_key'));
+                addIfValid(payloadConfig,'azure_tts_region',getVal('azure_tts_region'));
+                // Voice Clone 主要由 settings_api 写入 config，这里只在统一保存里透传一份，便于后端扩展
+                if(typeof payloadSettings.enable_voice_clone!=='undefined'){
+                    payloadConfig.enable_voice_clone = payloadSettings.enable_voice_clone;
+                }
+                if(payloadSettings.voice_clone_model_path){
+                    payloadConfig.voice_clone_model_path = payloadSettings.voice_clone_model_path;
+                }
+                if(payloadSettings.voice_clone_executable_path){
+                    payloadConfig.voice_clone_executable_path = payloadSettings.voice_clone_executable_path;
+                }
+
+                // 判断是否填写了任何云端密钥（api_key/secret）或本地 Voice Clone 配置
+                const countSensitive = (obj)=>Object.keys(obj).filter(k=>/(api_key|secret)/i.test(k) && obj[k]).length;
+                const hasAnyKey = (countSensitive(payloadSettings) + countSensitive(payloadConfig)) > 0;
+                const hasVoiceCloneConfig = !!(payloadSettings.voice_clone_model_path || payloadSettings.voice_clone_executable_path || payloadSettings.enable_voice_clone);
+                if(!hasAnyKey && !hasVoiceCloneConfig){
+                    layer.msg('⚠️ 请至少配置一个API密钥，或填写本地 Voice Clone 引擎路径',{icon:0,time:3000});
+                    return;
+                }
+
+                console.log('📝 准备保存配置:', {payloadSettings, payloadConfig});
+                const loading=layer.msg('正在保存配置...',{icon:16,time:0,shade:0.3});
+
+                // 分别调用两个API并捕获详细错误
+                let r1, r2, err1, err2;
+                try{
+                    console.log('🌐 调用 /api/settings/api-config...');
+                    const res1 = await fetch('/api/settings/api-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payloadSettings)});
+                    console.log(`📡 /api/settings/api-config 响应状态: ${res1.status}`);
+                    r1 = await res1.json();
+                    console.log('✅ /api/settings/api-config 响应:', r1);
+                }catch(e){
+                    err1 = e;
+                    console.error('❌ /api/settings/api-config 失败:', e);
+                    r1 = {code:1, msg: e.message || '网络错误'};
+                }
+                try{
+                    console.log('🌐 调用 /api/config/save...');
+                    const res2 = await fetch('/api/config/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payloadConfig)});
+                    console.log(`📡 /api/config/save 响应状态: ${res2.status}`);
+                    r2 = await res2.json();
+                    console.log('✅ /api/config/save 响应:', r2);
+                }catch(e){
+                    err2 = e;
+                    console.error('❌ /api/config/save 失败:', e);
+                    r2 = {code:1, msg: e.message || '网络错误'};
+                }
+                layer.close(loading);
+                if((r1&&r1.code===0)||(r2&&r2.code===0)){
+                    // 运行时重载一次，随后刷新UI
+                    try{ await fetch('/api/config/reload',{method:'POST'}); }catch(_){ }
+                    layer.msg('✅ 配置已保存',{icon:1,time:2000});
+                    loadAPIConfig();
+                    // 刷新实时指标
+                    try{ fetchSystemMetrics(); }catch(_){ }
+                }else{
+                    const errMsg = (r1&&r1.msg) || (r2&&r2.msg) || '保存失败';
+                    console.error('❌ 保存失败:', {r1, r2, err1, err2});
+                    layer.msg(`❌ 保存失败: ${errMsg}`, {icon:2,time:4000});
+                }
+            }catch(e){
+                console.error('❌ 保存异常:', e);
+                layer.msg(`❌ 保存异常: ${e.message || '未知错误'}`,{icon:2,time:4000});
+            }
+        }
+
+        async function testAPI(api_type,api_key,base_url,extra){
+            let loading = null;
+            try{
+                loading=layer.msg('测试中...',{icon:16,time:0,shade:0.2});
+                const res=await fetch('/api/settings/test-api',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify(Object.assign({api_type,api_key,base_url},extra||{}))
+                }).then(r=>r.json());
+                if(loading) layer.close(loading);
+
+                if(res && res.code===0){
+                    // 成功时保留简洁提示，将详细信息输出到控制台便于排查
+                    console.log('✅ API 测试成功:', res);
+                    layer.msg('✅ 连接成功',{icon:1,time:2000});
+                    return true;
+                }else{
+                    const detail = (res && (res.msg || (res.data && res.data.detail))) || '连接失败，具体原因未知';
+                    console.error('❌ API 测试失败:', res);
+                    layer.msg('❌ 连接失败: '+detail,{icon:2,time:4000});
+                    return false;
+                }
+            }catch(e){
+                if(loading) try{ layer.close(loading); }catch(_){}
+                console.error('❌ API 测试请求异常:', e);
+                layer.msg('❌ 请求失败: '+(e && e.message ? e.message : '网络错误'),{icon:2,time:4000});
+                return false;
+            }
+        }
+        async function testCustom(){
+            return await testAPI('custom',getVal('custom_api_key'),getVal('custom_base_url'));
+        }
+        
+        async function testClaudeVision(){await testAPI('claude-vision',getVal('claude_vision_api_key'),'');}
+        async function testAzureTTS(){await testAPI('azure-tts',getVal('azure_tts_key'),'',{region:getVal('azure_tts_region')});}
+        async function previewAzureTTS(){
+            const key=getVal('azure_tts_key');
+            if(!key){ layer.msg('请先输入 Azure TTS Subscription Key 并保存',{icon:0}); return; }
+            const loading=layer.msg('正在生成 Azure TTS 试听...',{icon:16,time:0,shade:0.25});
+            try{
+                const res=await fetch('/api/settings/azure-tts-preview',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({})
+                }).then(r=>r.json());
+                layer.close(loading);
+                if(!res || res.code!==0 || !res.data){
+                    layer.msg('试听失败: '+((res && res.msg)||'未知错误'),{icon:2,time:4000});
+                    return;
+                }
+                const url=res.data.audio_url || res.data.audio_path;
+                if(!url){
+                    layer.msg('试听失败：服务器未返回音频地址',{icon:2,time:4000});
+                    return;
+                }
+                const wrapper=document.getElementById('settingsAudioPreviewWrapper');
+                const audio=document.getElementById('settingsAudioPreview');
+                if(wrapper && audio){
+                    wrapper.style.display='block';
+                    audio.src=url;
+                    try{ await audio.play(); }catch(e){ /* 自动播放可能被阻止，忽略即可 */ }
+                }
+            }catch(e){
+                layer.close(loading);
+                layer.msg('试听失败: '+(e && e.message ? e.message : '网络错误'),{icon:2,time:4000});
+            }
+        }
+        async function testVoiceCloneEngineSettings(){
+            try{
+                var modelPath = getVal('voice_clone_model_path');
+                var exePath = getVal('voice_clone_executable_path');
+                if(!modelPath || !exePath){
+                    layer.msg('请先填写模型目录和可执行文件路径',{icon:0});
+                    return;
+                }
+                var loading = layer.msg('测试本地 Voice Clone 引擎配置中...',{icon:16,time:0,shade:0.25});
+                const res = await fetch('/api/test/voice-clone-engine',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({})
+                }).then(r=>r.json());
+                layer.close(loading);
+                if(res && res.code===0){
+                    layer.msg('✅ 本地 Voice Clone 引擎配置正常',{icon:1,time:2500});
+                }else{
+                    var details = res && res.data && Array.isArray(res.data.details)
+                        ? res.data.details.join('；')
+                        : (res && res.msg) || '配置异常，请检查路径是否正确。';
+                    layer.msg('❌ 配置异常: '+details,{icon:2,time:4000});
+                }
+            }catch(e){
+                layer.msg('❌ 测试失败: '+(e && e.message ? e.message : '网络错误'),{icon:2,time:4000});
+            }
+        }
+        async function previewVoiceCloneSample(){
+            try{
+                const enabledEl=document.querySelector('[name="enable_voice_clone"]');
+                const enabled=enabledEl && (enabledEl.checked || enabledEl.value===true || enabledEl.value==='true');
+                const modelPath=getVal('voice_clone_model_path');
+                const exePath=getVal('voice_clone_executable_path');
+                if(!enabled){
+                    layer.msg('请先勾选“启用”本地 Voice Clone 引擎',{icon:0});
+                    return;
+                }
+                if(!modelPath || !exePath){
+                    layer.msg('请先填写模型目录和可执行文件路径',{icon:0});
+                    return;
+                }
+                const loading=layer.msg('正在生成本地克隆音色试听...',{icon:16,time:0,shade:0.25});
+                const payload={
+                    text:'这是本地克隆音色试听示例，您好！',
+                    voice_id:'zh',
+                    tts_voice:'zh',
+                    tts_engine:'pyttsx3',
+                    max_text_length:200,
+                    max_total_seconds:60
+                };
+                const res=await fetch('/api/voice-clone/tts-generate',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify(payload)
+                }).then(r=>r.json());
+                layer.close(loading);
+                if(!res || res.code!==0 || !res.data){
+                    layer.msg('试听失败: '+((res && res.msg)||'生成失败，请检查本地引擎配置'),{icon:2,time:5000});
+                    return;
+                }
+                const url=res.data.audio_url || res.data.audio_path;
+                if(!url){
+                    layer.msg('试听失败：服务未返回音频地址',{icon:2,time:4000});
+                    return;
+                }
+                const wrapper=document.getElementById('settingsAudioPreviewWrapper');
+                const audio=document.getElementById('settingsAudioPreview');
+                if(wrapper && audio){
+                    wrapper.style.display='block';
+                    audio.src=url;
+                    try{ await audio.play(); }catch(e){ /* 自动播放可能被阻止，忽略即可 */ }
+                }
+            }catch(e){
+                layer.close(loading);
+                layer.msg('试听失败: '+(e && e.message ? e.message : '网络错误'),{icon:2,time:4000});
+            }
+        }
+        async function testAllModels(){
+            const tasks=[];
+            if(getVal('custom_api_key')) tasks.push(testCustom());
+            if(getVal('anthropic_api_key')) tasks.push(testClaude());
+            if(getVal('gemini_api_key')) tasks.push(testGemini());
+            if(getVal('kimi_api_key')) tasks.push(testKimi());
+            if(getVal('qwen_api_key')) tasks.push(testQwen());
+            if(getVal('ernie_api_key')&&getVal('ernie_secret_key')) tasks.push(testErnie());
+            if(getVal('chatglm_api_key')) tasks.push(testChatGLM());
+            if(getVal('deepseek_api_key')) tasks.push(testDeepSeek());
+            await Promise.allSettled(tasks);
+            layer.msg('批量测试完成',{icon:1});
+        }
+
+        // 导出配置（调用后端真实配置导出）
+        async function exportConfig() {
+            const loading = layer.msg('📦 正在导出配置...', {icon: 16, time: 0, shade: 0.2});
+            try{
+                const res = await fetch('/api/config/get').then(r=>r.json());
+                layer.close(loading);
+                if(!res || res.code!==0){ layer.msg('❌ 获取配置失败',{icon:2}); return; }
+                const dataStr = JSON.stringify(res.data||res, null, 2);
+                const blob = new Blob([dataStr], {type:'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `jjyb-config-${Date.now()}.json`; a.click();
+                URL.revokeObjectURL(url);
+                layer.msg('✅ 配置导出成功',{icon:1});
+            }catch(e){ layer.close(loading); layer.msg('❌ 导出失败',{icon:2}); }
+        }
+
+        // 导入配置（写回后端并重载）
+        function importConfig() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const config = JSON.parse(event.target.result);
+                        layer.confirm('确定要导入此配置吗？当前设置将被覆盖。', {
+                            icon: 3,
+                            title: '确认导入',
+                            btn: ['确定', '取消']
+                        }, async function(index) {
+                            layer.close(index);
+                            const payload = (config && config.config) ? config.config : config;
+                            const loading = layer.msg('正在写入配置...', {icon:16,time:0,shade:0.2});
+                            try{
+                                // 保存统一配置
+                                const r1 = await fetch('/api/config/save', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)}).then(r=>r.json());
+                                // 尝试保存敏感API配置（若JSON内包含对应key）
+                                const r2 = await fetch('/api/settings/api-config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)}).then(r=>r.json()).catch(()=>({code:0}));
+                                // 重新加载配置
+                                await fetch('/api/config/reload', {method:'POST'}).catch(()=>{});
+                                layer.close(loading);
+                                if((r1&&r1.code===0) || (r2&&r2.code===0)){
+                                    layer.msg('✅ 配置导入成功', {icon:1});
+                                    loadAPIConfig(); fetchSystemMetrics();
+                                } else {
+                                    layer.msg('❌ 导入失败', {icon:2});
+                                }
+                            }catch(err){ layer.close(loading); layer.msg('❌ 导入失败', {icon:2}); }
+                        });
+                    } catch (error) {
+                        layer.msg('❌ 配置文件格式错误', {icon: 2});
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        // 选择保存路径
+        function chooseSavePath() {
+            var v = prompt('请输入保存目录的绝对路径（例如 D:/Videos/Exports）：', $('input[name="save-path"]').val() || '');
+            if (v != null) { $('input[name="save-path"]').val(v); }
+        }
+
+        // 选择FFmpeg路径
+        function chooseFFmpegPath() {
+            var v = prompt('请输入 FFmpeg 可执行文件路径（例如 C:/ffmpeg/bin/ffmpeg.exe）：', $('input[name="ffmpeg-path"]').val() || '');
+            if (v != null) { $('input[name="ffmpeg-path"]').val(v); }
+        }
+
+        
+    });
+
+
+</script>
+{% endblock %}

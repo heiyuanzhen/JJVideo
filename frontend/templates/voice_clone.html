@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>声音克隆 - JJYB AI智剪</title>
+    <link rel="stylesheet" href="https://unpkg.com/layui@2.8.0/dist/css/layui.css">
+    <style>
+        body { background: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .container { max-width: 1400px; margin: 20px auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card { background: white; border-radius: 10px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .upload-zone { border: 2px dashed #d9d9d9; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .upload-zone:hover { border-color: #667eea; background: #f8f9ff; }
+        .voice-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .voice-item { border: 2px solid #e8e8e8; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .voice-item:hover { border-color: #667eea; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2); }
+        .voice-item.selected { border-color: #667eea; background: #f8f9ff; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px; transition: all 0.3s; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+        .progress-bar { width: 100%; height: 6px; background: #e8e8e8; border-radius: 3px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="margin: 0; font-size: 32px;">🎤 声音克隆</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">上传音频样本，克隆声音特征，生成自定义配音</p>
+        </div>
+
+        <div class="card">
+            <h3>📤 上传音频样本</h3>
+            <p style="color: #666;">支持格式：mp3, wav, m4a（建议10-60秒的清晰人声）</p>
+            <div class="upload-zone" id="uploadZone">
+                <div style="font-size: 48px; color: #667eea;">📁</div>
+                <p style="margin: 10px 0 5px 0; font-size: 16px; color: #333;">点击或拖拽音频文件到此处</p>
+                <p style="color: #999; font-size: 14px;">最佳效果：清晰、无背景音、10-60秒</p>
+            </div>
+            <input type="file" id="audioFile" accept="audio/*" style="display: none;">
+            
+            <div id="uploadProgress" style="display: none; margin-top: 20px;">
+                <p id="uploadStatus">正在上传...</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🎵 我的克隆声音</h3>
+            <div class="voice-list" id="voiceList">
+                <div class="voice-item" data-voice="default">
+                    <div style="font-size: 36px;">🎤</div>
+                    <p style="margin: 10px 0 5px 0; font-weight: bold;">默认音色</p>
+                    <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="previewVoice('default')">试听</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>✍️ 生成配音</h3>
+            <div class="layui-form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">文本内容</label>
+                    <div class="layui-input-block">
+                        <textarea id="textContent" placeholder="输入要转换的文字..." class="layui-textarea" rows="6"></textarea>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">选择音色</label>
+                    <div class="layui-input-block">
+                        <select id="voiceSelect" class="layui-input">
+                            <option value="default">默认音色</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <button class="btn-primary" onclick="generateVoice()">🎙️ 生成配音</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="resultCard" style="display: none;">
+            <h3>✅ 生成结果</h3>
+            <audio id="resultAudio" controls style="width: 100%; margin: 10px 0;"></audio>
+            <button class="layui-btn layui-btn-normal" onclick="downloadAudio()">💾 下载音频</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/layui@2.8.0/dist/layui.js"></script>
+    <script>
+        layui.use(['layer', 'form'], function() {
+            var layer = layui.layer;
+            var form = layui.form;
+
+            // 上传区域点击
+            document.getElementById('uploadZone').onclick = function() {
+                document.getElementById('audioFile').click();
+            };
+
+            // 文件选择
+            document.getElementById('audioFile').onchange = function(e) {
+                var file = e.target.files[0];
+                if (file) {
+                    uploadAudio(file);
+                }
+            };
+
+            // 拖拽上传
+            var uploadZone = document.getElementById('uploadZone');
+            uploadZone.ondragover = function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#667eea';
+                this.style.background = '#f8f9ff';
+            };
+            uploadZone.ondragleave = function() {
+                this.style.borderColor = '#d9d9d9';
+                this.style.background = 'white';
+            };
+            uploadZone.ondrop = function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#d9d9d9';
+                this.style.background = 'white';
+                var file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('audio/')) {
+                    uploadAudio(file);
+                }
+            };
+
+            // 当前参考音色音频路径（后端返回的绝对/相对路径）
+            var currentReferenceAudioPath = '';
+
+            // 上传音频
+            window.uploadAudio = function(file) {
+                var formData = new FormData();
+                formData.append('audio', file);
+
+                var progressBar = document.getElementById('uploadProgress');
+                var progressFill = document.getElementById('progressFill');
+                if (progressBar && progressFill) {
+                    progressBar.style.display = 'block';
+                    progressFill.style.width = '30%';
+                }
+
+                fetch('/api/upload/audio', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (progressFill) {
+                        progressFill.style.width = '100%';
+                    }
+                    if (data.code === 0) {
+                        try {
+                            currentReferenceAudioPath = (data.data && data.data.path) ? data.data.path : '';
+                        } catch (e) {
+                            currentReferenceAudioPath = '';
+                        }
+                        layer.msg('✅ 上传成功！已作为参考音色使用', {icon: 1});
+                        loadVoiceList();
+                    } else {
+                        layer.msg('上传失败：' + data.msg, {icon: 2});
+                    }
+                    setTimeout(() => {
+                        if (progressBar) {
+                            progressBar.style.display = 'none';
+                        }
+                    }, 1000);
+                })
+                .catch(err => {
+                    layer.msg('上传出错：' + err.message, {icon: 2});
+                    if (progressBar) {
+                        progressBar.style.display = 'none';
+                    }
+                });
+            };
+
+            // 加载内置声音列表
+            window.loadVoiceList = function() {
+                try {
+                    fetch('/api/voice-clone/builtin-voices')
+                        .then(function(res){ return res.json(); })
+                        .then(function(resp){
+                            if (!resp || resp.code !== 0 || !Array.isArray(resp.data)) {
+                                return;
+                            }
+                            var voices = resp.data;
+                            var sel = document.getElementById('voiceSelect');
+                            if (sel) {
+                                sel.innerHTML = '';
+                                voices.forEach(function(v){
+                                    var opt = document.createElement('option');
+                                    opt.value = v.id || v.value || v.name || 'zh';
+                                    opt.textContent = v.name || v.label || v.id || '未知音色';
+                                    sel.appendChild(opt);
+                                });
+                            }
+                            layer.msg('内置音色列表已更新', {icon: 1, time: 1000});
+                        })
+                        .catch(function(err){ console.warn('加载内置音色失败', err); });
+                } catch (e) {
+                    console.warn('loadVoiceList error', e);
+                }
+            };
+
+            // 预览声音
+            window.previewVoice = function(voiceId) {
+                layer.msg('当前页面主要用于上传参考音色并生成克隆配音，更多预览与参数调节请在“AI配音”页面中完成。', {icon: 0, time: 3000});
+            };
+
+            // 生成配音
+            window.generateVoice = function() {
+                var text = document.getElementById('textContent').value.trim();
+                if (!text) {
+                    layer.msg('请输入文本内容', {icon: 0});
+                    return;
+                }
+                var voiceId = document.getElementById('voiceSelect').value;
+                
+                layer.load(2, {content: '正在生成配音...'});
+
+                var payload = {
+                    text: text,
+                    tts_voice: voiceId || 'zh',
+                    tts_engine: 'pyttsx3'
+                };
+                if (currentReferenceAudioPath) {
+                    payload.reference_audio = currentReferenceAudioPath;
+                } else if (voiceId) {
+                    payload.voice_id = voiceId;
+                }
+
+                fetch('/api/voice-clone/tts-generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    layer.closeAll('loading');
+                    if (data.code === 0 && data.data) {
+                        var url = data.data.audio_url || data.data.audio_path;
+                        if (url && url.charAt(0) !== '/') {
+                            url = '/' + url;
+                        }
+                        document.getElementById('resultCard').style.display = 'block';
+                        document.getElementById('resultAudio').src = url;
+                        layer.msg('✅ 配音生成成功！', {icon: 1});
+                    } else {
+                        layer.msg('生成失败：' + (data.msg || '未知错误'), {icon: 2});
+                    }
+                })
+                .catch(err => {
+                    layer.closeAll('loading');
+                    layer.msg('生成出错：' + err.message, {icon: 2});
+                });
+            };
+
+            // 下载音频
+            window.downloadAudio = function() {
+                var audio = document.getElementById('resultAudio');
+                if (audio && audio.src) {
+                    window.open(audio.src, '_blank');
+                } else {
+                    layer.msg('当前没有可下载的配音，请先生成一次克隆配音。', {icon: 0, time: 2500});
+                }
+            };
+
+            // 页面初始化时尝试加载内置克隆音色列表
+            try {
+                loadVoiceList();
+            } catch (e) {
+                console.warn('初始化加载克隆音色列表失败', e);
+            }
+        });
+    </script>
+</body>
+</html>

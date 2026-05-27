@@ -1,0 +1,98 @@
+# AIJian v2.0 - Python依赖包列表
+# 更新时间: 2025-11-10
+# 完整版 - 包含所有功能所需依赖
+
+# ==================== Web框架 ====================
+flask>=3.0.0
+flask-socketio>=5.3.0
+flask-cors>=4.0.0
+python-socketio>=5.10.0
+eventlet>=0.34.0
+
+# ==================== 桌面应用 ====================
+pywebview>=4.4.1
+
+# ==================== 视频处理 ====================
+ffmpeg-python>=0.2.0
+moviepy>=1.0.3
+opencv-python>=4.8.0
+pysrt>=1.1.2
+imageio>=2.31.0
+imageio-ffmpeg>=0.4.9
+
+# ==================== AI核心依赖 ====================
+# PyTorch (根据系统选择CPU或GPU版本)
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# 语音识别 (ASR)
+faster-whisper>=1.0.0
+
+# YOLO目标检测
+ultralytics>=8.0.0
+
+# 音频处理
+librosa>=0.10.0
+soundfile>=0.12.0
+pydub>=0.25.1
+
+# 语音合成 (TTS)
+edge-tts>=6.1.0
+gTTS>=2.3.2
+pyttsx3>=2.90
+
+# 大模型API
+openai>=1.0.0
+anthropic>=0.7.0
+google-generativeai>=0.7.0
+dashscope>=1.15.0
+zhipuai>=2.0.0
+
+# ==================== 数据处理 ====================
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.11.0
+pillow>=10.0.0
+
+# ==================== HTTP和API ====================
+requests>=2.31.0
+httpx>=0.25.0
+aiohttp>=3.9.0
+
+# ==================== 配置和环境 ====================
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
+
+# ==================== 文件处理 ====================
+python-multipart>=0.0.6
+
+# ==================== 日志和监控 ====================
+loguru>=0.7.0
+
+psutil>=5.9.0
+
+# ==================== 开发工具（可选） ====================
+# pytest>=7.4.0
+# flake8>=6.0.0
+# black>=23.0.0
+
+# ==================== 说明 ====================
+# 1. 基础依赖（必装）：
+#    - Flask相关、视频处理、数据处理、HTTP
+#
+# 2. AI依赖（推荐）：
+#    - torch, ultralytics, librosa, edge-tts
+#
+# 3. 可选依赖：
+#    - CLIP: pip install git+https://github.com/openai/CLIP.git
+#    - Whisper: pip install openai-whisper
+#    - FunASR: pip install funasr
+#
+# 4. 安装方式：
+#    方式1: pip install -r requirements.txt
+#    方式2: 运行 安装AI依赖.bat (Windows)
+#
+# 5. GPU支持：
+#    如需GPU加速，请访问 https://pytorch.org/
+#    选择适合您系统的CUDA版本安装PyTorch

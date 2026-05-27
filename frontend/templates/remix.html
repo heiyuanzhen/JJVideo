@@ -1,0 +1,3501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>混剪模式 - AIJian</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@layui/layui-src/dist/css/layui.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto 60px auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .layout-two-cols {
+            display: grid;
+            grid-template-columns: minmax(0, 1.8fr) minmax(260px, 0.9fr);
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        @media (max-width: 960px) {
+            .layout-two-cols {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        .recent-panel {
+            background: #fff5f7;
+            border-radius: 16px;
+            border: 1px solid #fed7e2;
+            padding: 18px 16px 14px 16px;
+            box-shadow: 0 8px 24px rgba(245,87,108,0.18);
+        }
+
+        .recent-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .recent-panel-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .recent-panel-title span.icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .recent-panel-sub {
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .recent-list {
+            margin-top: 8px;
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .recent-item {
+            padding: 10px 10px;
+            border-radius: 10px;
+            border: 1px solid #fee2e2;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .recent-item:hover {
+            border-color: #f5576c;
+            box-shadow: 0 6px 18px rgba(245,87,108,0.18);
+            transform: translateY(-1px);
+        }
+
+        .recent-item-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .recent-item-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #111827;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .recent-item-meta {
+            margin-top: 3px;
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .recent-status {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .recent-status.completed {
+            background: rgba(16,185,129,0.1);
+            color: #059669;
+        }
+
+        .recent-status.processing {
+            background: rgba(59,130,246,0.1);
+            color: #2563eb;
+        }
+
+        .recent-status.pending {
+            background: rgba(251,191,36,0.1);
+            color: #d97706;
+        }
+
+        .recent-status.failed {
+            background: rgba(239,68,68,0.1);
+            color: #dc2626;
+        }
+
+        .recent-refresh {
+            margin-left: 6px;
+            font-size: 11px;
+            color: #f97316;
+            cursor: pointer;
+        }
+
+        .recent-refresh:hover {
+            text-decoration: underline;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            color: #f5576c;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .steps {
+            display: grid;
+            gap: 30px;
+        }
+
+        .step {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+
+        .step-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #f5576c;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .step-number {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .file-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .file-item {
+            padding: 15px;
+            background: white;
+            border: 2px solid #f093fb;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #f5576c;
+            padding: 40px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-area:hover {
+            background: #fff5f7;
+        }
+
+        .style-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .style-option {
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .style-option:hover {
+            border-color: #f5576c;
+            background: #fff5f7;
+        }
+
+        .style-option.active {
+            border-color: #f5576c;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.9);
+            border: 2px solid #f5576c;
+            color: #f5576c;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            background: #f5576c;
+            color: white;
+        }
+
+        /* Banner头部 */
+        .page-banner {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 60px 20px;
+            text-align: center;
+            margin: -20px -20px 30px -20px;
+            border-radius: 0;
+            box-shadow: 0 5px 25px rgba(245,87,108,0.3);
+        }
+
+        .banner-content h1 {
+            font-size: 42px;
+            color: white;
+            margin: 0 0 15px 0;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .banner-content p {
+            font-size: 18px;
+            color: rgba(255,255,255,0.95);
+            margin: 0;
+            font-weight: 500;
+        }
+
+        /* 配置提示框 */
+        .config-tip {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            padding: 20px 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(250,112,154,0.3);
+        }
+
+        .tip-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .tip-content {
+            flex: 1;
+            color: white;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .tip-content strong {
+            font-weight: 700;
+            font-size: 16px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* 表单行布局 */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        .form-col label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-col input,
+        .form-col select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-col input:focus,
+        .form-col select:focus {
+            border-color: #f5576c;
+            outline: none;
+        }
+
+        /* 模型选择部分 */
+        .model-section {
+            margin-bottom: 25px;
+            margin-top: 25px;
+        }
+
+        .section-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .section-label i {
+            color: #f5576c;
+            font-size: 18px;
+        }
+
+        /* 模型卡片网格 */
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .model-card {
+            position: relative;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .model-card:hover {
+            border-color: #f5576c;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(245,87,108,0.2);
+        }
+
+        .model-card.active {
+            border-color: #f5576c;
+            background: linear-gradient(135deg, rgba(240,147,251,0.1) 0%, rgba(245,87,108,0.1) 100%);
+            box-shadow: 0 4px 15px rgba(245,87,108,0.3);
+        }
+
+        .model-logo {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .model-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .model-desc {
+            font-size: 12px;
+            color: #999;
+            line-height: 1.4;
+        }
+
+        .model-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* 混剪模式选择器 */
+        .remix-mode-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .mode-card {
+            position: relative;
+            background: white;
+            border: 3px solid #e0e0e0;
+            border-radius: 20px;
+            padding: 30px 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .mode-card:hover {
+            border-color: #f5576c;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(245,87,108,0.2);
+        }
+
+        .mode-card.active {
+            border-color: #f5576c;
+            background: linear-gradient(135deg, rgba(240,147,251,0.08) 0%, rgba(245,87,108,0.08) 100%);
+            box-shadow: 0 10px 30px rgba(245,87,108,0.3);
+        }
+
+        .mode-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+            animation: mode-pulse 2s infinite;
+        }
+
+        @keyframes mode-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .mode-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .mode-desc {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .mode-features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .mode-features span {
+            font-size: 12px;
+            color: #555;
+            padding: 6px 10px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            border: 1px solid #e8e8e8;
+        }
+
+        .mode-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 11px;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            animation: badge-float 2s infinite;
+        }
+
+        @keyframes badge-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        /* 技术说明部分 */
+        .tech-section {
+            margin: 25px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(240,147,251,0.05) 0%, rgba(245,87,108,0.05) 100%);
+            border-left: 4px solid #f5576c;
+            border-radius: 12px;
+        }
+
+        .tech-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .tech-icon {
+            font-size: 36px;
+            flex-shrink: 0;
+            animation: tech-pulse 3s infinite;
+        }
+
+        @keyframes tech-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .tech-title h4 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #333;
+            margin: 0 0 8px 0;
+        }
+
+        .tech-title p {
+            font-size: 13px;
+            color: #666;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        /* 紧凑的TTS引擎行 */
+        .tts-engine-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .engine-mini-card {
+            flex: 1;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .engine-mini-card:hover {
+            border-color: #f5576c;
+            transform: translateY(-2px);
+        }
+
+        .engine-mini-card.active {
+            border-color: #f5576c;
+            background: linear-gradient(135deg, rgba(240,147,251,0.1) 0%, rgba(245,87,108,0.1) 100%);
+        }
+
+        .engine-mini-icon {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .engine-mini-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* 紧凑的音色卡片 */
+        .voice-section-compact {
+            margin-top: 10px;
+        }
+
+        .voice-grid-compact {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+        }
+
+        .voice-card-mini {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .voice-card-mini:hover {
+            border-color: #f5576c;
+            transform: translateY(-2px);
+        }
+
+        .voice-card-mini.active {
+            border-color: #f5576c;
+            background: linear-gradient(135deg, rgba(240,147,251,0.15) 0%, rgba(245,87,108,0.15) 100%);
+            box-shadow: 0 3px 10px rgba(245,87,108,0.2);
+        }
+
+        .voice-icon-mini {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .voice-name-mini {
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* 现代化功能选项卡片 */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .option-card {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(240,147,251,0.05) 0%, rgba(245,87,108,0.05) 100%);
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .option-card:hover {
+            border-color: #f5576c;
+            box-shadow: 0 8px 25px rgba(245,87,108,0.2);
+            transform: translateY(-3px);
+            background: linear-gradient(135deg, rgba(240,147,251,0.1) 0%, rgba(245,87,108,0.1) 100%);
+        }
+
+        .option-icon {
+            flex-shrink: 0;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(245,87,108,0.3);
+        }
+
+        .option-content {
+            flex: 1;
+        }
+
+        .option-content h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 5px 0;
+        }
+
+        .option-content p {
+            font-size: 13px;
+            color: #666;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* iOS风格开关切换 */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 28px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .slider {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 8px rgba(245,87,108,0.5);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        /* 开关切换动画 */
+        @keyframes switchOn {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        input:checked + .slider {
+            animation: switchOn 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="window.location.href='/'">← 返回首页</button>
+    
+    <!-- 快捷导航 -->
+    <div class="floating-actions right">
+        <button onclick="window.location.href='/commentary'" style="padding: 8px 16px; background: rgba(255,255,255,0.9); color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+            🎙️ 原创解说
+        </button>
+        <button onclick="window.location.href='/voiceover'" style="padding: 8px 16px; background: rgba(255,255,255,0.9); color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+            🔊 AI配音
+        </button>
+        <button onclick="window.location.href='/editor'" style="padding: 8px 16px; background: rgba(255,255,255,0.9); color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+            🎬 编辑器
+        </button>
+        <button onclick="cleanupRemix()" style="padding: 8px 16px; background: rgba(255,255,255,0.95); color: #0ea5e9; border: 2px solid #0ea5e9; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+            🧹 清理产物
+        </button>
+    </div>
+
+    <!-- Banner头部 - 添加顶部间距避免被固定导航遮挡 -->
+    <div class="page-banner" style="margin-top: 80px;">
+        <div class="banner-content">
+            <h1>混剪模式 · AI智能版</h1>
+            <p>自由剪辑 · 批量生成 · 全无水印高清录制</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="layout-two-cols">
+            <div class="steps">
+            <!-- 全局配置提示框 -->
+            <div class="config-tip">
+                <div class="tip-icon">💡</div>
+                <div class="tip-content">
+                    <strong>智能剪辑模式</strong>：AI将自动识别视频中的精彩片段、人脸特写、精彩表情等内容，并按照节奏感自动组合成高完成度的混剪视频
+                </div>
+            </div>
+
+            <!-- 混剪模式选择 -->
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">1</span>
+                    选择混剪模式
+                </div>
+                
+                <div class="remix-mode-selector">
+                    <div class="mode-card active" onclick="selectRemixMode('general', this)" id="generalMode">
+                        <div class="mode-icon">🎬</div>
+                        <div class="mode-name">大众混剪模式</div>
+                        <div class="mode-desc">基于内容理解的智能混剪，适合大众视频创作</div>
+                        <div class="mode-features">
+                            <span>✓ 智能场景识别</span>
+                            <span>✓ 精彩片段提取</span>
+                            <span>✓ 情感分析</span>
+                            <span>✓ 自动转场</span>
+                        </div>
+                        <div class="mode-badge">推荐</div>
+                    </div>
+                    
+                    <div class="mode-card" onclick="selectRemixMode('music', this)" id="musicMode">
+                        <div class="mode-icon">🎵</div>
+                        <div class="mode-name">音乐卡点混剪</div>
+                        <div class="mode-desc">根据配乐节奏检测卡点，制作高质量音乐MV</div>
+                        <div class="mode-features">
+                            <span>✓ 音乐节奏分析</span>
+                            <span>✓ 卡点自动检测</span>
+                            <span>✓ 快慢关键帧</span>
+                            <span>✓ 节奏同步</span>
+                        </div>
+                        <div class="mode-badge" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">HOT</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤2: 项目设置 -->
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">2</span>
+                    项目基础设置
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>项目名称</label>
+                        <input type="text" id="projectName" placeholder="输入项目名称，如：游戏高光集锦">
+                    </div>
+                    <div class="form-col">
+                        <label>目标时长</label>
+                        <select id="durationModeRemix" onchange="updateRemixDurationUI()">
+                            <option value="full">原视频长度</option>
+                            <option value="one_third">原视频1/3</option>
+                            <option value="two_thirds">原视频2/3</option>
+                            <option value="custom">自定义时长</option>
+                        </select>
+                        <input type="number" id="customDurationRemix" placeholder="输入秒数（不超过原视频总时长）" style="margin-top: 8px; display: none;" min="1" oninput="updateRemixDurationUI()" onchange="updateRemixDurationUI()">
+                        <div id="sourceDurationHintRemix" style="font-size: 12px; color: #666; margin-top: 6px;">源视频总时长：--</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>选择模板</label>
+                        <select id="template">
+                            <option value="vlog">Vlog日常</option>
+                            <option value="highlight">游戏高光</option>
+                            <option value="film">影视混剪</option>
+                            <option value="film_positive">影视/动漫 · 正能量</option>
+                            <option value="film_romance">影视/动漫 · 恋爱</option>
+                            <option value="film_inspire">影视/动漫 · 励志</option>
+                            <option value="film_hotblood">影视/动漫 · 热血</option>
+                            <option value="travel">旅行混剪</option>
+                            <option value="food">美食集锦</option>
+                            <option value="pet">萌宠日常</option>
+                            <option value="custom">自定义</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>输出质量</label>
+                        <select id="quality">
+                            <option value="1080p">1080P高清</option>
+                            <option value="2k">2K超清</option>
+                            <option value="4k">4K超高清</option>
+                            <option value="720p">720P标清</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top: 8px; text-align: right;">
+                    <button class="layui-btn layui-btn-primary" type="button" onclick="applyMovieRemixPreset()" style="height: 28px; line-height: 28px; padding: 0 10px; font-size: 13px;">
+                        🎬 套用影视混剪推荐参数
+                    </button>
+                </div>
+
+                <!-- 视觉模型选择 -->
+                <div class="model-section">
+                    <label class="section-label">
+                        <i class="fa fa-eye"></i> 选择视觉识别模型（用于识别精彩片段）
+                    </label>
+                    <div class="model-grid">
+                        <div class="model-card active" onclick="selectVisionModel('gpt4v', this)">
+                            <div class="model-logo">👁️</div>
+                            <div class="model-name">GPT-4 Vision</div>
+                            <div class="model-desc">最强视觉理解</div>
+                            <div class="model-badge">推荐</div>
+                        </div>
+                        <div class="model-card" onclick="selectVisionModel('claude-vision', this)">
+                            <div class="model-logo">🔍</div>
+                            <div class="model-name">Claude Vision</div>
+                            <div class="model-desc">细节分析精准</div>
+                        </div>
+                        <div class="model-card" onclick="selectVisionModel('gemini-vision', this)">
+                            <div class="model-logo">✨</div>
+                            <div class="model-name">Gemini Vision</div>
+                            <div class="model-desc">多模态理解</div>
+                        </div>
+                        <div class="model-card" onclick="selectVisionModel('qwen-vl', this)">
+                            <div class="model-logo">🎯</div>
+                            <div class="model-name">通义千问VL</div>
+                            <div class="model-desc">中文场景优化</div>
+                        </div>
+                        <div class="model-card" onclick="selectVisionModel('baidu-vision', this)">
+                            <div class="model-logo">📷</div>
+                            <div class="model-name">百度视觉</div>
+                            <div class="model-desc">人脸表情识别</div>
+                        </div>
+                        <div class="model-card" onclick="selectVisionModel('tencent-vision', this)">
+                            <div class="model-logo">🎬</div>
+                            <div class="model-name">腾讯云视觉</div>
+                            <div class="model-desc">视频内容理解</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 技术流程配置 -->
+                <div class="tech-section">
+                    <div class="tech-header">
+                        <div class="tech-icon">🤖</div>
+                        <div class="tech-title">
+                            <h4>AI混剪技术流程</h4>
+                            <p>三步骤智能处理：视频分析 → 片段选择 → 时间轴优化</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 第一步：视频内容结构化分析 -->
+                <div class="tech-section">
+                    <div class="tech-header">
+                        <div class="tech-icon">🎞️</div>
+                        <div class="tech-title">
+                            <h4>第一步：视频内容结构化分析</h4>
+                            <p>镜头检测、场景分割、关键帧提取</p>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>🎬 镜头检测算法</label>
+                            <select id="shotDetection">
+                                <option value="cnn" selected>深度学习(CNN)</option>
+                                <option value="histogram">直方图差分</option>
+                                <option value="feature">特征点匹配</option>
+                                <option value="multimodal">多模态融合</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>🔍 场景分割精度</label>
+                            <select id="sceneSegmentation">
+                                <option value="high">高精度（逐帧）</option>
+                                <option value="medium" selected>标准（关键帧）</option>
+                                <option value="low">快速（采样）</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 第二步：智能片段选择与排序 -->
+                <div class="tech-section">
+                    <div class="tech-header">
+                        <div class="tech-icon">✨</div>
+                        <div class="tech-title">
+                            <h4>第二步：智能片段选择与排序</h4>
+                            <p>基于内容理解选择最具代表性的视频片段</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>🎯 片段选择策略</label>
+                            <select id="selectionStrategy">
+                                <option value="balanced" selected>均衡选择（综合评分）</option>
+                                <option value="semantic">语义优先（内容相关）</option>
+                                <option value="visual">视觉优先（画面精彩）</option>
+                                <option value="emotion">情感优先（情感强度）</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>💫 情感强度阈值</label>
+                            <select id="emotionThreshold">
+                                <option value="high">高（仅精彩片段）</option>
+                                <option value="medium" selected>中等（适度筛选）</option>
+                                <option value="low">低（包含平淡片段）</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>📊 重要性评分权重</label>
+                            <select id="importanceWeight">
+                                <option value="0.3">30%（更重视语义）</option>
+                                <option value="0.5" selected>50%（均衡）</option>
+                                <option value="0.7">70%（更重视重要性）</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>🔗 叙事连贯性</label>
+                            <select id="narrativeCoherence">
+                                <option value="strict">严格（确保连贯）</option>
+                                <option value="moderate" selected>适中（灵活调整）</option>
+                                <option value="loose">宽松（允许跳跃）</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 第三步：剪辑规则与时间轴优化 -->
+                <div class="tech-section">
+                    <div class="tech-header">
+                        <div class="tech-icon">⚡</div>
+                        <div class="tech-title">
+                            <h4>第三步：剪辑规则与时间轴优化</h4>
+                            <p>基于场景类型和情感分析的智能剪辑</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>🎭 剪辑规则引擎</label>
+                            <select id="editingRules">
+                                <option value="auto" selected>自动识别（智能规则）</option>
+                                <option value="action">动作优先（快节奏）</option>
+                                <option value="dialogue">对话优先（稳定节奏）</option>
+                                <option value="scenery">风景优先（慢节奏）</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>⏱️ 时间轴优化算法</label>
+                            <select id="timelineOptimization">
+                                <option value="dtw" selected>动态时间规整(DTW)</option>
+                                <option value="greedy">贪心算法</option>
+                                <option value="dp">动态规划</option>
+                                <option value="constraint">约束优化</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 核心算法：多模态特征提取 -->
+                <div class="tech-section">
+                    <div class="tech-header">
+                        <div class="tech-icon">🧬</div>
+                        <div class="tech-title">
+                            <h4>核心算法：多模态特征提取</h4>
+                            <p>视觉、音频特征的深度提取和融合（混剪专用）</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>👁️ 视觉特征提取模型</label>
+                            <select id="remixVisualFeature">
+                                <option value="resnet50" selected>ResNet50（推荐）</option>
+                                <option value="vit">ViT (Vision Transformer)</option>
+                                <option value="efficientnet">EfficientNet</option>
+                                <option value="inception">InceptionV3</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>🔊 音频特征提取算法</label>
+                            <select id="remixAudioFeature">
+                                <option value="mfcc" selected>MFCC（梅尔频率）</option>
+                                <option value="mel-spectrogram">Mel频谱图</option>
+                                <option value="combined">MFCC+频谱融合</option>
+                                <option value="wav2vec">Wav2Vec 2.0</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>⚖️ 特征融合权重</label>
+                            <select id="remixFeatureFusion">
+                                <option value="visual-dominant" selected>视觉主导（70%+30%）</option>
+                                <option value="balanced">均衡（各50%）</option>
+                                <option value="audio-dominant">音频主导（30%+70%）</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>🎚️ 特征标准化方式</label>
+                            <select id="remixFeatureNorm">
+                                <option value="l2-norm" selected>L2范数标准化</option>
+                                <option value="z-score">Z-Score标准化</option>
+                                <option value="min-max">Min-Max归一化</option>
+                                <option value="batch-norm">Batch标准化</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 技术性能优化 -->
+                <div class="tech-section">
+                    <div class="tech-header">
+                        <div class="tech-icon">⚡</div>
+                        <div class="tech-title">
+                            <h4>技术性能优化</h4>
+                            <p>处理速度与质量的平衡控制</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>🚀 处理速度优先级</label>
+                            <select id="remixSpeedPriority">
+                                <option value="balanced" selected>平衡（质量+速度）</option>
+                                <option value="quality">质量优先（慢但精确）</option>
+                                <option value="speed">速度优先（快但略粗糙）</option>
+                                <option value="realtime">实时处理（最快）</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>💻 并行计算策略</label>
+                            <select id="remixParallelCompute">
+                                <option value="auto" selected>自动（根据硬件）</option>
+                                <option value="multi-thread">多线程（CPU）</option>
+                                <option value="gpu-accelerate">GPU加速</option>
+                                <option value="distributed">分布式处理</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>🎯 模型优化级别</label>
+                            <select id="remixModelOpt">
+                                <option value="full-precision">完整精度（FP32）</option>
+                                <option value="half-precision" selected>半精度（FP16）</option>
+                                <option value="quantized">量化模型（INT8）</option>
+                                <option value="distilled">蒸馏模型（轻量）</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>💾 缓存优化策略</label>
+                            <select id="remixCacheStrategy">
+                                <option value="smart" selected>智能缓存</option>
+                                <option value="aggressive">激进缓存（占用大）</option>
+                                <option value="minimal">最小缓存（占用小）</option>
+                                <option value="disabled">禁用缓存</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 跨平台适配配置 -->
+                <div class="tech-section">
+                    <div class="tech-header">
+                        <div class="tech-icon">📱</div>
+                        <div class="tech-title">
+                            <h4>跨平台适配配置</h4>
+                            <p>自动适配不同平台的视频格式和尺寸要求</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>🎬 目标平台</label>
+                            <select id="remixTargetPlatform">
+                                <option value="universal" selected>通用（16:9）</option>
+                                <option value="douyin">抖音（9:16竖屏）</option>
+                                <option value="bilibili">B站（16:9横屏）</option>
+                                <option value="xiaohongshu">小红书（3:4）</option>
+                                <option value="youtube">YouTube（16:9）</option>
+                                <option value="weibo">微博视频</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>📐 视频分辨率</label>
+                            <select id="remixVideoResolution">
+                                <option value="1080p" selected>1080P（1920x1080）</option>
+                                <option value="2k">2K（2560x1440）</option>
+                                <option value="4k">4K（3840x2160）</option>
+                                <option value="720p">720P（1280x720）</option>
+                                <option value="platform-optimal">平台最佳</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>🎞️ 视频编码格式</label>
+                            <select id="remixVideoCodec">
+                                <option value="h264" selected>H.264（兼容性最好）</option>
+                                <option value="h265">H.265/HEVC（高压缩）</option>
+                                <option value="vp9">VP9（Web优化）</option>
+                                <option value="av1">AV1（最新标准）</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>🎚️ 比特率控制</label>
+                            <select id="remixBitrateControl">
+                                <option value="auto" selected>自动（根据分辨率）</option>
+                                <option value="high">高质量（10-15Mbps）</option>
+                                <option value="medium">标准（5-8Mbps）</option>
+                                <option value="low">压缩（2-4Mbps）</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤3: 上传素材 -->
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">3</span>
+                    批量上传视频素材
+                </div>
+                <div class="file-upload-area" onclick="document.getElementById('videoFiles').click()">
+                    <div style="font-size: 48px; color: #f5576c; margin-bottom: 15px;">📹</div>
+                    <div>点击上传多个视频文件或拖拽到此处</div>
+                    <div style="font-size: 12px; color: #999; margin-top: 10px;">支持同时选择多个视频，最多50个文件</div>
+                    <input type="file" id="videoFiles" accept="video/*" multiple style="display: none;" onchange="handleVideoUpload(this)">
+                </div>
+                <div class="file-list" id="fileList"></div>
+                <div style="margin-top: 10px;">
+                    <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px; border-radius: 6px;" onclick="openRemixMaterialPicker()">
+                        ♻️ 复用已完成项目的素材
+                    </button>
+                    <span style="font-size: 12px; color: #666; margin-left: 6px;">从历史混剪项目中选择视频素材，避免重复上传</span>
+                </div>
+            </div>
+
+            <!-- 步骤4: 选择风格 -->
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">4</span>
+                    选择混剪风格
+                </div>
+                <div class="style-selector">
+                    <div class="style-option active" data-style="dynamic" onclick="selectStyle('dynamic', this)">
+                        <div style="font-size: 32px; margin-bottom: 10px;">⚡</div>
+                        <div style="font-weight: 600;">动感风格</div>
+                        <div style="font-size: 12px; margin-top: 5px;">快节奏，短片段</div>
+                    </div>
+                    <div class="style-option" data-style="calm" onclick="selectStyle('calm', this)">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🌊</div>
+                        <div style="font-weight: 600;">平静风格</div>
+                        <div style="font-size: 12px; margin-top: 5px;">慢节奏，长片段</div>
+                    </div>
+                    <div class="style-option" data-style="exciting" onclick="selectStyle('exciting', this)">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🔥</div>
+                        <div style="font-weight: 600;">激动风格</div>
+                        <div style="font-size: 12px; margin-top: 5px;">超快节奏，炫酷</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 音乐卡点混剪专属配置（仅在音乐卡点模式下显示） -->
+            <div class="step" id="musicBeatConfig" style="display: none;">
+                <div class="step-title">
+                    <span class="step-number">🎵</span>
+                    音乐卡点混剪配置
+                </div>
+
+                <div class="tech-section">
+                    <div class="tech-header">
+                        <div class="tech-icon">🎵</div>
+                        <div class="tech-title">
+                            <h4>音乐节奏分析与卡点检测</h4>
+                            <p>自动检测配乐节奏卡点，设置快慢关键帧制作高质量MV</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 一键节奏预设 -->
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label>⚙️ 一键节奏预设</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
+                        <button type="button" class="btn" onclick="applyBeatPreset('extreme')" style="padding: 6px 12px; font-size: 13px; background: #ffffff; border: 1px solid #f97373; color: #f97373;">
+                            极限卡点
+                        </button>
+                        <button type="button" class="btn" onclick="applyBeatPreset('cinematic')" style="padding: 6px 12px; font-size: 13px; background: #ffffff; border: 1px solid #4b5563; color: #4b5563;">
+                            电影感卡点
+                        </button>
+                        <button type="button" class="btn" onclick="applyBeatPreset('mv')" style="padding: 6px 12px; font-size: 13px; background: #ffffff; border: 1px solid #6366f1; color: #6366f1;">
+                            动感MV
+                        </button>
+                        <button type="button" class="btn" onclick="applyBeatPreset('relax')" style="padding: 6px 12px; font-size: 13px; background: #ffffff; border: 1px solid #0ea5e9; color: #0ea5e9;">
+                            慢节奏/氛围
+                        </button>
+                    </div>
+                    <div id="beatPresetHint" style="font-size: 12px; color: #6b7280; margin-top: 6px;">
+                        可快速切换节奏风格，系统会自动调整卡点敏感度、速度曲线与转场效果。
+                    </div>
+                </div>
+
+                <!-- 上传背景音乐 -->
+                <div class="form-group">
+                    <label>📀 上传背景音乐</label>
+                    <div class="file-upload-area" onclick="document.getElementById('musicFile').click()" style="padding: 30px;">
+                        <div style="font-size: 48px; color: #f5576c; margin-bottom: 15px;">🎵</div>
+                        <div>点击上传音乐文件（MP3/WAV/FLAC）</div>
+                        <div style="font-size: 12px; color: #999; margin-top: 10px;">系统将自动分析音乐节奏和卡点</div>
+                        <input type="file" id="musicFile" accept="audio/*" style="display: none;" onchange="handleMusicUpload(this)">
+                    </div>
+                    <div id="musicInfo" style="display: none; margin-top: 15px;"></div>
+                </div>
+
+                <!-- 卡点检测配置 -->
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>🎼 节奏检测算法</label>
+                        <select id="beatDetection">
+                            <option value="ml" selected>机器学习（高精度）</option>
+                            <option value="fft">频域分析（FFT）</option>
+                            <option value="onset">能量突变检测</option>
+                            <option value="tempo">节拍跟踪</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>🎯 卡点敏感度</label>
+                        <select id="beatSensitivity">
+                            <option value="high">高（检测所有卡点）</option>
+                            <option value="medium" selected>中（主要卡点）</option>
+                            <option value="low">低（仅强卡点）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 关键帧设置 -->
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>⚡ 快速关键帧</label>
+                        <select id="fastKeyframe">
+                            <option value="auto" selected>自动（跟随节奏）</option>
+                            <option value="beat">每个卡点</option>
+                            <option value="strong">强卡点</option>
+                            <option value="custom">自定义间隔</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>🐌 慢速关键帧</label>
+                        <select id="slowKeyframe">
+                            <option value="transition">过渡段（0.5x）</option>
+                            <option value="climax" selected>高潮前（0.3x）</option>
+                            <option value="none">不使用</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 速度曲线 -->
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>📈 速度变化曲线</label>
+                        <select id="speedCurve">
+                            <option value="smooth" selected>平滑变化</option>
+                            <option value="sharp">急剧变化</option>
+                            <option value="stepped">阶梯变化</option>
+                            <option value="custom">自定义曲线</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>🎬 卡点切换效果</label>
+                        <select id="beatTransition">
+                            <option value="cut" selected>直接切换（快切）</option>
+                            <option value="flash">闪白</option>
+                            <option value="zoom">缩放冲击</option>
+                            <option value="shake">震动</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 节奏匹配策略 -->
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>🎭 片段-节奏匹配</label>
+                        <select id="rhythmMatch">
+                            <option value="auto" selected>自动匹配（智能）</option>
+                            <option value="intense">激烈片段→强节奏</option>
+                            <option value="calm">平静片段→弱节奏</option>
+                            <option value="contrast">对比匹配（反差）</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>⏰ 节奏同步精度</label>
+                        <select id="syncPrecision">
+                            <option value="frame">逐帧同步（最精确）</option>
+                            <option value="subframe" selected>亚帧同步（高精度）</option>
+                            <option value="beat">节拍同步（标准）</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤5: 配置参数 -->
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">4</span>
+                    配置参数
+                </div>
+                <div class="form-group">
+                    <label>目标时长（秒）</label>
+                    <div id="remixTargetDisplay" style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; background: #fafafa; color: #333;">
+                        未确定
+                    </div>
+                </div>
+                <!-- 现代化功能选项卡片 -->
+                <div class="options-grid">
+                    <!-- 自动识别精彩片段 -->
+                    <div class="option-card">
+                        <div class="option-icon">
+                            <i class="fa fa-star"></i>
+                        </div>
+                        <div class="option-content">
+                            <h4>自动识别精彩片段</h4>
+                            <p>AI智能分析识别视频中的精彩部分</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="autoHighlight" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <!-- 自动添加转场效果 -->
+                    <div class="option-card">
+                        <div class="option-icon">
+                            <i class="fa fa-magic"></i>
+                        </div>
+                        <div class="option-content">
+                            <h4>自动添加转场效果</h4>
+                            <p>在片段之间添加流畅的转场动画</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="autoTransition" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <!-- 自动添加背景音乐 -->
+                    <div class="option-card">
+                        <div class="option-icon">
+                            <i class="fa fa-music"></i>
+                        </div>
+                        <div class="option-content">
+                            <h4>自动添加背景音乐</h4>
+                            <p>智能匹配视频节奏添加背景音乐</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="autoBGM" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 自动生成配音（可选） -->
+                    <div class="option-card">
+                        <div class="option-icon">
+                            <i class="fa fa-microphone"></i>
+                        </div>
+                        <div class="option-content">
+                            <h4>自动生成配音</h4>
+                            <p>为混剪视频添加AI配音解说</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="autoVoiceover" onchange="toggleVoiceoverSettings(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 配音设置（默认隐藏） -->
+                <div id="voiceoverSettings" style="display: none; margin-top: 20px;">
+                    <div class="model-section">
+                        <label class="section-label">
+                            <i class="fa fa-microphone"></i> 配音引擎
+                        </label>
+                        <div class="tts-engine-row">
+                            <div class="engine-mini-card active" onclick="selectRemixTTSEngine('edge-tts', this)">
+                                <div class="engine-mini-icon">🎙️</div>
+                                <div class="engine-mini-name">Edge-TTS</div>
+                            </div>
+                            <div class="engine-mini-card" onclick="selectRemixTTSEngine('voice-clone', this)">
+                                <div class="engine-mini-icon">🎭</div>
+                                <div class="engine-mini-name">Voice Clone</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-section">
+                        <label class="section-label">
+                            <i class="fa fa-volume-up"></i> 选择音色
+                        </label>
+                        
+                        <!-- Edge-TTS音色 -->
+                        <div id="edgeTTSVoicesRemix" class="voice-section-compact">
+                            <div class="voice-grid-compact">
+                                <div class="voice-card-mini active" onclick="selectRemixVoice('zh-CN-XiaoxiaoNeural', this)">
+                                    <div class="voice-icon-mini">👩</div>
+                                    <div class="voice-name-mini">晓晓</div>
+                                </div>
+                                <div class="voice-card-mini" onclick="selectRemixVoice('zh-CN-YunxiNeural', this)">
+                                    <div class="voice-icon-mini">👨</div>
+                                    <div class="voice-name-mini">云希</div>
+                                </div>
+                                <div class="voice-card-mini" onclick="selectRemixVoice('zh-CN-YunyangNeural', this)">
+                                    <div class="voice-icon-mini">🧑</div>
+                                    <div class="voice-name-mini">云扬</div>
+                                </div>
+                                <div class="voice-card-mini" onclick="selectRemixVoice('zh-CN-YunfengNeural', this)">
+                                    <div class="voice-icon-mini">🎤</div>
+                                    <div class="voice-name-mini">云枫</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Voice Clone音色 -->
+                        <div id="voiceCloneVoicesRemix" class="voice-section-compact" style="display: none;">
+                            <div class="voice-grid-compact">
+                                <div class="voice-card-mini active" onclick="selectRemixVoice('zh', this)">
+                                    <div class="voice-icon-mini">🇨🇳</div>
+                                    <div class="voice-name-mini">中文</div>
+                                </div>
+                                <div class="voice-card-mini" onclick="selectRemixVoice('en-us', this)">
+                                    <div class="voice-icon-mini">🇺🇸</div>
+                                    <div class="voice-name-mini">美国</div>
+                                </div>
+                                <div class="voice-card-mini" onclick="selectRemixVoice('en-br', this)">
+                                    <div class="voice-icon-mini">🇬🇧</div>
+                                    <div class="voice-name-mini">英国</div>
+                                </div>
+                                <div class="voice-card-mini" onclick="selectRemixVoice('jp', this)">
+                                    <div class="voice-icon-mini">🇯🇵</div>
+                                    <div class="voice-name-mini">日语</div>
+                                </div>
+                                <div class="voice-card-mini" onclick="selectRemixVoice('kr', this)">
+                                    <div class="voice-icon-mini">🇰🇷</div>
+                                    <div class="voice-name-mini">韩语</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤4: 开始处理 -->
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">5</span>
+                    开始混剪
+                </div>
+                <button class="btn btn-primary" onclick="startRemix()" style="width: 100%; padding: 15px; font-size: 18px;">
+                    🚀 开始智能混剪
+                </button>
+                
+                <div class="progress-container" id="progressContainer">
+                    <div style="margin-bottom: 10px; font-weight: 600;">处理进度</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill">0%</div>
+                    </div>
+                    <div id="progressText" style="margin-top: 10px; text-align: center; color: #666;"></div>
+                </div>
+
+                <div id="resultContainer" style="display: none; margin-top: 20px;">
+                    <div style="margin-bottom: 10px; font-weight: 600;">混剪结果预览</div>
+                    <video id="resultVideo" controls style="width: 100%; border-radius: 12px; background: #000;"></video>
+                    <div id="resultInfo" style="margin-top: 8px; font-size: 13px; color: #444;"></div>
+                </div>
+            </div>
+
+            </div>
+
+            <aside class="recent-panel">
+                <div class="recent-panel-header">
+                    <div class="recent-panel-title">
+                        <span class="icon">🎬</span>
+                        <span>最近混剪项目</span>
+                    </div>
+                    <div class="recent-panel-sub">最近 5 个项目<span class="recent-refresh" onclick="loadRecentRemixProjects()">刷新</span></div>
+                </div>
+                <div id="recentRemixProjects" class="recent-list"></div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@layui/layui-src/dist/layui.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/common.js"></script>
+    <script>
+        let uploadedFiles = [];
+        let selectedStyle = 'dynamic';
+        let selectedVisionModel = 'gpt4v'; // 默认选择GPT-4 Vision
+        let selectedRemixTTSEngine = 'edge-tts'; // 默认Edge-TTS
+        let selectedRemixVoice = 'zh-CN-XiaoxiaoNeural'; // 默认晓晓
+        let selectedRemixMode = 'general'; // 默认大众混剪模式
+        let uploadedMusicFile = null; // 音乐文件
+        let selectedBGM = null; // 手动选择的背景音乐标识/路径（如适用）
+        let selectedTransition = 'fade'; // 全局转场风格默认值
+
+        function formatTimeAgoForRemix(dateString) {
+            if (!dateString) return '未知时间';
+            const now = new Date();
+            const date = new Date(dateString);
+            const diff = Math.floor((now - date) / 1000);
+
+            if (diff < 60) return '刚刚';
+            if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+            if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+            if (diff < 2592000) return Math.floor(diff / 86400) + '天前';
+            if (diff < 31536000) return Math.floor(diff / 2592000) + '个月前';
+            return Math.floor(diff / 31536000) + '年前';
+        }
+
+        async function loadRecentRemixProjects() {
+            const container = document.getElementById('recentRemixProjects');
+            if (!container) return;
+
+            container.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:12px;color:#6b7280;">加载中...</div>';
+
+            try {
+                const res = await fetch('/api/projects?type=remix&limit=5&sort=updated_at&order=desc', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                }).then(r => r.json());
+
+                if (!res || res.code !== 0 || !res.data || !Array.isArray(res.data.projects)) {
+                    throw new Error((res && res.msg) || '加载失败');
+                }
+
+                const projects = res.data.projects;
+                if (!projects.length) {
+                    container.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:12px;color:#6b7280;">暂无最近项目</div>';
+                    return;
+                }
+
+                const statusClassMap = {
+                    completed: 'completed',
+                    processing: 'processing',
+                    running: 'processing',
+                    pending: 'pending',
+                    failed: 'failed'
+                };
+                const statusTextMap = {
+                    completed: '已完成',
+                    processing: '处理中',
+                    running: '处理中',
+                    pending: '待处理',
+                    failed: '已失败'
+                };
+
+                container.innerHTML = projects.map(p => {
+                    const statusKey = String(p.status || 'pending').toLowerCase();
+                    const statusClass = statusClassMap[statusKey] || 'pending';
+                    const statusText = statusTextMap[statusKey] || '待处理';
+                    const timeAgo = formatTimeAgoForRemix(p.updated_at || p.created_at);
+                    const name = p.name || '未命名项目';
+
+                    let metaParts = [];
+                    try {
+                        const rawCfg = p.config;
+                        if (rawCfg) {
+                            const cfg = (typeof rawCfg === 'string') ? JSON.parse(rawCfg) : rawCfg;
+                            if (cfg && typeof cfg === 'object') {
+                                const tpl = cfg.template;
+                                const fmt = cfg.output_format || cfg.format;
+                                const quality = cfg.quality || cfg.output_quality;
+                                if (tpl) {
+                                    metaParts.push('模板：' + tpl);
+                                }
+                                if (fmt || quality) {
+                                    const outLabel = '输出：' + [fmt, quality].filter(Boolean).join('/');
+                                    metaParts.push(outLabel);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('解析项目配置失败:', e);
+                    }
+
+                    metaParts.push(timeAgo);
+                    const metaText = metaParts.join(' · ');
+
+                    return `
+                        <div class="recent-item" onclick="openProjectFromRemix('${p.id}')">
+                            <div class="recent-item-main">
+                                <div class="recent-item-title" title="${name}（${timeAgo}）">${name}</div>
+                                <div class="recent-item-meta">${metaText}</div>
+                            </div>
+                            <span class="recent-status ${statusClass}">${statusText}</span>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('加载最近混剪项目失败:', e);
+                container.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:12px;color:#f97316;">加载失败，稍后重试</div>';
+            }
+        }
+
+        function openProjectFromRemix(projectId) {
+            if (!projectId) return;
+            try {
+                if (window.sessionStorage) {
+                    sessionStorage.setItem('current_project_id', projectId);
+                }
+            } catch (e) {
+                console.log('保存当前项目ID失败:', e);
+            }
+            window.location.href = '/';
+        }
+
+        // 选择混剪模式
+        function selectRemixMode(mode, element) {
+            // 移除所有mode-card的active类
+            document.querySelectorAll('.mode-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            // 添加active类到选中的卡片
+            element.classList.add('active');
+            // 保存选择
+            selectedRemixMode = mode;
+            
+            // 根据模式显示/隐藏音乐卡点配置
+            const musicBeatConfig = document.getElementById('musicBeatConfig');
+            if (mode === 'music') {
+                musicBeatConfig.style.display = 'block';
+                Notification.success('已切换到音乐卡点混剪模式');
+            } else {
+                musicBeatConfig.style.display = 'none';
+                Notification.success('已切换到大众混剪模式');
+            }
+            
+            console.log('已选择混剪模式:', mode);
+            saveRemixPreferences();
+        }
+
+        // 按模板应用预设参数
+        function applyRemixTemplate(templateKey) {
+            console.log('🎨 应用混剪模板:', templateKey);
+
+            // 影视混剪模板：偏重剧情线索 + 情绪高潮 + 严格叙事
+            if (templateKey === 'film') {
+                // 模式：大众混剪
+                const generalModeCard = document.getElementById('generalMode');
+                if (generalModeCard) {
+                    selectRemixMode('general', generalModeCard);
+                }
+
+                // 风格：动感（剧情节奏快，镜头短）
+                const dynamicCard = document.querySelector('.style-option[data-style="dynamic"]');
+                if (dynamicCard) {
+                    selectStyle('dynamic', dynamicCard);
+                }
+
+                // 场景分析：高精度 + 多模态镜头检测
+                const shotSel = document.getElementById('shotDetection');
+                const sceneSel = document.getElementById('sceneSegmentation');
+                if (shotSel) shotSel.value = 'multimodal';
+                if (sceneSel) sceneSel.value = 'high';
+
+                // 片段选择：语义/情绪优先，强调冲突与反转
+                const strategySel = document.getElementById('selectionStrategy');
+                const emotionSel = document.getElementById('emotionThreshold');
+                const importanceSel = document.getElementById('importanceWeight');
+                const narrativeSel = document.getElementById('narrativeCoherence');
+                if (strategySel) strategySel.value = 'semantic';
+                if (emotionSel) emotionSel.value = 'high';
+                if (importanceSel) importanceSel.value = '0.7';
+                if (narrativeSel) narrativeSel.value = 'strict';
+
+                Notification.info('已应用“影视混剪”模板：优先剧情线索与情绪高潮，强调镜头节奏与叙事连贯。');
+                return;
+            }
+
+            // 影视/动漫 · 正能量混剪：温暖治愈、阳光向上的合集，配合有律动但不过于炸的音乐卡点
+            if (templateKey === 'film_positive') {
+                // 模式：音乐卡点混剪
+                const musicModeCard = document.getElementById('musicMode');
+                if (musicModeCard) {
+                    selectRemixMode('music', musicModeCard);
+                }
+
+                // 风格：动感但不过于极端
+                const dynamicCard = document.querySelector('.style-option[data-style="dynamic"]');
+                if (dynamicCard) {
+                    selectStyle('dynamic', dynamicCard);
+                }
+
+                // 场景分析：标准精度 + 深度学习镜头检测
+                const shotSel = document.getElementById('shotDetection');
+                const sceneSel = document.getElementById('sceneSegmentation');
+                if (shotSel) shotSel.value = 'cnn';
+                if (sceneSel) sceneSel.value = 'medium';
+
+                // 片段选择：情感优先，但不过度筛选，保证连续性
+                const strategySel = document.getElementById('selectionStrategy');
+                const emotionSel = document.getElementById('emotionThreshold');
+                const importanceSel = document.getElementById('importanceWeight');
+                const narrativeSel = document.getElementById('narrativeCoherence');
+                if (strategySel) strategySel.value = 'emotion';
+                if (emotionSel) emotionSel.value = 'medium';
+                if (importanceSel) importanceSel.value = '0.5';
+                if (narrativeSel) narrativeSel.value = 'moderate';
+
+                // 剪辑规则：自动 + 时间轴DTW，适合轻快但连贯的节奏
+                const editingSel = document.getElementById('editingRules');
+                const timelineSel = document.getElementById('timelineOptimization');
+                if (editingSel) editingSel.value = 'auto';
+                if (timelineSel) timelineSel.value = 'dtw';
+
+                // 多模态特征融合：视觉略占优，适合阳光画面
+                const visualFeatureSel = document.getElementById('remixVisualFeature');
+                const audioFeatureSel = document.getElementById('remixAudioFeature');
+                const fusionSel = document.getElementById('remixFeatureFusion');
+                const normSel = document.getElementById('remixFeatureNorm');
+                if (visualFeatureSel) visualFeatureSel.value = 'resnet50';
+                if (audioFeatureSel) audioFeatureSel.value = 'mfcc';
+                if (fusionSel) fusionSel.value = 'visual-dominant';
+                if (normSel) normSel.value = 'l2-norm';
+
+                // 音乐卡点：中等敏感度，平滑速度曲线，适合正能量BGM
+                const beatDetSel = document.getElementById('beatDetection');
+                const beatSenSel = document.getElementById('beatSensitivity');
+                const fastKeySel = document.getElementById('fastKeyframe');
+                const slowKeySel = document.getElementById('slowKeyframe');
+                const speedCurveSel = document.getElementById('speedCurve');
+                const beatTransSel = document.getElementById('beatTransition');
+                const rhythmSel = document.getElementById('rhythmMatch');
+                const syncSel = document.getElementById('syncPrecision');
+                if (beatDetSel) beatDetSel.value = 'ml';
+                if (beatSenSel) beatSenSel.value = 'medium';
+                if (fastKeySel) fastKeySel.value = 'auto';
+                if (slowKeySel) slowKeySel.value = 'transition';
+                if (speedCurveSel) speedCurveSel.value = 'smooth';
+                if (beatTransSel) beatTransSel.value = 'cut';
+                if (rhythmSel) rhythmSel.value = 'auto';
+                if (syncSel) syncSel.value = 'beat';
+
+                Notification.info('已应用“影视/动漫 · 正能量混剪”模板：中速节奏 + 情绪向上片段，适合暖心治愈类BGM卡点。');
+                return;
+            }
+
+            // 影视/动漫 · 恋爱混剪：情绪拉扯+氛围感，节奏偏柔和，重点突出情感节点
+            if (templateKey === 'film_romance') {
+                // 模式：音乐卡点混剪（柔和甜感BGM）
+                const musicModeCard = document.getElementById('musicMode');
+                if (musicModeCard) {
+                    selectRemixMode('music', musicModeCard);
+                }
+
+                // 风格：平静为主，保留镜头停留时间
+                const calmCard = document.querySelector('.style-option[data-style="calm"]');
+                if (calmCard) {
+                    selectStyle('calm', calmCard);
+                }
+
+                // 场景分析：高精度 + 多模态，保证情绪细节
+                const shotSel = document.getElementById('shotDetection');
+                const sceneSel = document.getElementById('sceneSegmentation');
+                if (shotSel) shotSel.value = 'multimodal';
+                if (sceneSel) sceneSel.value = 'high';
+
+                // 片段选择：情感优先，强情绪阈值，严格叙事（相遇-靠近-分离-和解）
+                const strategySel = document.getElementById('selectionStrategy');
+                const emotionSel = document.getElementById('emotionThreshold');
+                const importanceSel = document.getElementById('importanceWeight');
+                const narrativeSel = document.getElementById('narrativeCoherence');
+                if (strategySel) strategySel.value = 'emotion';
+                if (emotionSel) emotionSel.value = 'high';
+                if (importanceSel) importanceSel.value = '0.5';
+                if (narrativeSel) narrativeSel.value = 'strict';
+
+                // 剪辑规则：对话优先，时间轴DTW
+                const editingSel = document.getElementById('editingRules');
+                const timelineSel = document.getElementById('timelineOptimization');
+                if (editingSel) editingSel.value = 'dialogue';
+                if (timelineSel) timelineSel.value = 'dtw';
+
+                // 特征：视觉+音频均衡，适合氛围/环境音
+                const visualFeatureSel = document.getElementById('remixVisualFeature');
+                const audioFeatureSel = document.getElementById('remixAudioFeature');
+                const fusionSel = document.getElementById('remixFeatureFusion');
+                const normSel = document.getElementById('remixFeatureNorm');
+                if (visualFeatureSel) visualFeatureSel.value = 'resnet50';
+                if (audioFeatureSel) audioFeatureSel.value = 'combined';
+                if (fusionSel) fusionSel.value = 'balanced';
+                if (normSel) normSel.value = 'l2-norm';
+
+                // 音乐卡点：低敏感度，更多跟随段落变化而非每一个鼓点
+                const beatDetSel = document.getElementById('beatDetection');
+                const beatSenSel = document.getElementById('beatSensitivity');
+                const fastKeySel = document.getElementById('fastKeyframe');
+                const slowKeySel = document.getElementById('slowKeyframe');
+                const speedCurveSel = document.getElementById('speedCurve');
+                const beatTransSel = document.getElementById('beatTransition');
+                const rhythmSel = document.getElementById('rhythmMatch');
+                const syncSel = document.getElementById('syncPrecision');
+                if (beatDetSel) beatDetSel.value = 'onset';
+                if (beatSenSel) beatSenSel.value = 'low';
+                if (fastKeySel) fastKeySel.value = 'strong';
+                if (slowKeySel) slowKeySel.value = 'transition';
+                if (speedCurveSel) speedCurveSel.value = 'smooth';
+                if (beatTransSel) beatTransSel.value = 'cut';
+                if (rhythmSel) rhythmSel.value = 'calm';
+                if (syncSel) syncSel.value = 'subframe';
+
+                Notification.info('已应用“影视/动漫 · 恋爱混剪”模板：以情感推进为主，节奏偏柔和，适合甜感/氛围向BGM卡点。');
+                return;
+            }
+
+            // 影视/动漫 · 励志混剪：成长/逆袭/训练蒙太奇，情绪上扬，节奏逐步拉满
+            if (templateKey === 'film_inspire') {
+                // 模式：音乐卡点混剪，适合鼓点清晰的励志BGM
+                const musicModeCard = document.getElementById('musicMode');
+                if (musicModeCard) {
+                    selectRemixMode('music', musicModeCard);
+                }
+
+                // 风格：动感为主，兼顾信息量和节奏感
+                const dynamicCard = document.querySelector('.style-option[data-style="dynamic"]');
+                if (dynamicCard) {
+                    selectStyle('dynamic', dynamicCard);
+                }
+
+                // 场景分析：深度学习镜头检测 + 标准场景分割
+                const shotSel = document.getElementById('shotDetection');
+                const sceneSel = document.getElementById('sceneSegmentation');
+                if (shotSel) shotSel.value = 'cnn';
+                if (sceneSel) sceneSel.value = 'medium';
+
+                // 片段选择：语义优先（故事线清晰）+ 高情绪阈值 + 高重要性权重
+                const strategySel = document.getElementById('selectionStrategy');
+                const emotionSel = document.getElementById('emotionThreshold');
+                const importanceSel = document.getElementById('importanceWeight');
+                const narrativeSel = document.getElementById('narrativeCoherence');
+                if (strategySel) strategySel.value = 'semantic';
+                if (emotionSel) emotionSel.value = 'high';
+                if (importanceSel) importanceSel.value = '0.7';
+                if (narrativeSel) narrativeSel.value = 'strict';
+
+                // 剪辑规则：动作优先，时间轴采用约束优化，突出节奏爬坡
+                const editingSel = document.getElementById('editingRules');
+                const timelineSel = document.getElementById('timelineOptimization');
+                if (editingSel) editingSel.value = 'action';
+                if (timelineSel) timelineSel.value = 'constraint';
+
+                // 特征：视觉+音频均衡，适合训练/比赛画面
+                const visualFeatureSel = document.getElementById('remixVisualFeature');
+                const audioFeatureSel = document.getElementById('remixAudioFeature');
+                const fusionSel = document.getElementById('remixFeatureFusion');
+                const normSel = document.getElementById('remixFeatureNorm');
+                if (visualFeatureSel) visualFeatureSel.value = 'vit';
+                if (audioFeatureSel) audioFeatureSel.value = 'combined';
+                if (fusionSel) fusionSel.value = 'balanced';
+                if (normSel) normSel.value = 'l2-norm';
+
+                // 音乐卡点：高敏感度，关键鼓点全部卡上，速度曲线略带冲击感
+                const beatDetSel = document.getElementById('beatDetection');
+                const beatSenSel = document.getElementById('beatSensitivity');
+                const fastKeySel = document.getElementById('fastKeyframe');
+                const slowKeySel = document.getElementById('slowKeyframe');
+                const speedCurveSel = document.getElementById('speedCurve');
+                const beatTransSel = document.getElementById('beatTransition');
+                const rhythmSel = document.getElementById('rhythmMatch');
+                const syncSel = document.getElementById('syncPrecision');
+                if (beatDetSel) beatDetSel.value = 'ml';
+                if (beatSenSel) beatSenSel.value = 'high';
+                if (fastKeySel) fastKeySel.value = 'beat';
+                if (slowKeySel) slowKeySel.value = 'climax';
+                if (speedCurveSel) speedCurveSel.value = 'sharp';
+                if (beatTransSel) beatTransSel.value = 'flash';
+                if (rhythmSel) rhythmSel.value = 'intense';
+                if (syncSel) syncSel.value = 'frame';
+
+                Notification.info('已应用“影视/动漫 · 励志混剪”模板：重点突出逆袭/训练蒙太奇，大量关键鼓点卡切，适合热血励志配乐。');
+                return;
+            }
+
+            // 影视/动漫 · 热血混剪：战斗/爆燃场面，节奏快速、卡点密集
+            if (templateKey === 'film_hotblood') {
+                // 模式：音乐卡点混剪，偏重强鼓点与爆点
+                const musicModeCard = document.getElementById('musicMode');
+                if (musicModeCard) {
+                    selectRemixMode('music', musicModeCard);
+                }
+
+                // 风格：激动风格，超快节奏
+                const excitingCard = document.querySelector('.style-option[data-style="exciting"]');
+                if (excitingCard) {
+                    selectStyle('exciting', excitingCard);
+                }
+
+                // 场景分析：多模态镜头检测 + 标准场景分割，兼顾动作与镜头稳定性
+                const shotSel = document.getElementById('shotDetection');
+                const sceneSel = document.getElementById('sceneSegmentation');
+                if (shotSel) shotSel.value = 'multimodal';
+                if (sceneSel) sceneSel.value = 'medium';
+
+                // 片段选择：视觉优先 + 高情绪阈值 + 高重要性权重，叙事适中，给画面爽感让位
+                const strategySel = document.getElementById('selectionStrategy');
+                const emotionSel = document.getElementById('emotionThreshold');
+                const importanceSel = document.getElementById('importanceWeight');
+                const narrativeSel = document.getElementById('narrativeCoherence');
+                if (strategySel) strategySel.value = 'visual';
+                if (emotionSel) emotionSel.value = 'high';
+                if (importanceSel) importanceSel.value = '0.7';
+                if (narrativeSel) narrativeSel.value = 'moderate';
+
+                // 剪辑规则：动作优先 + 贪心时间轴，优先堆叠高能镜头
+                const editingSel = document.getElementById('editingRules');
+                const timelineSel = document.getElementById('timelineOptimization');
+                if (editingSel) editingSel.value = 'action';
+                if (timelineSel) timelineSel.value = 'greedy';
+
+                // 特征：更强调色彩+运动，适合动漫和炫酷特效
+                const visualFeatureSel = document.getElementById('remixVisualFeature');
+                const audioFeatureSel = document.getElementById('remixAudioFeature');
+                const fusionSel = document.getElementById('remixFeatureFusion');
+                const normSel = document.getElementById('remixFeatureNorm');
+                if (visualFeatureSel) visualFeatureSel.value = 'vit';
+                if (audioFeatureSel) audioFeatureSel.value = 'mel-spectrogram';
+                if (fusionSel) fusionSel.value = 'visual-dominant';
+                if (normSel) normSel.value = 'l2-norm';
+
+                // 音乐卡点：高敏感度、半拍/一拍密集卡点，冲击感强
+                const beatDetSel = document.getElementById('beatDetection');
+                const beatSenSel = document.getElementById('beatSensitivity');
+                const fastKeySel = document.getElementById('fastKeyframe');
+                const slowKeySel = document.getElementById('slowKeyframe');
+                const speedCurveSel = document.getElementById('speedCurve');
+                const beatTransSel = document.getElementById('beatTransition');
+                const rhythmSel = document.getElementById('rhythmMatch');
+                const syncSel = document.getElementById('syncPrecision');
+                if (beatDetSel) beatDetSel.value = 'tempo';
+                if (beatSenSel) beatSenSel.value = 'high';
+                if (fastKeySel) fastKeySel.value = 'beat';
+                if (slowKeySel) slowKeySel.value = 'climax';
+                if (speedCurveSel) speedCurveSel.value = 'sharp';
+                if (beatTransSel) beatTransSel.value = 'zoom';
+                if (rhythmSel) rhythmSel.value = 'intense';
+                if (syncSel) syncSel.value = 'frame';
+
+                Notification.info('已应用“影视/动漫 · 热血混剪”模板：高能战斗/燃点蒙太奇，节奏极快、卡点密集，适合燃向鼓点BGM。');
+                return;
+            }
+
+            // 其他模板简单提示，保留默认配置
+            if (templateKey === 'vlog') {
+                Notification.info('Vlog日常模板：推荐使用动感或平静风格，可自由调整参数。');
+            } else if (templateKey === 'highlight') {
+                Notification.info('游戏高光模板：推荐使用激动风格，突出高能画面。');
+            } else if (templateKey === 'travel') {
+                Notification.info('旅行混剪模板：推荐使用动感+平静组合，展示风光与人物。');
+            } else if (templateKey === 'food') {
+                Notification.info('美食集锦模板：推荐使用平静风格，突出细节特写。');
+            } else if (templateKey === 'pet') {
+                Notification.info('萌宠日常模板：推荐使用动感风格，保留更多可爱瞬间。');
+            } else if (templateKey === 'custom') {
+                Notification.info('自定义模板：请根据需要自行调整下方所有参数。');
+            }
+        }
+
+        // 一键套用“影视混剪推荐参数”
+        function applyMovieRemixPreset() {
+            console.log('🎬 套用影视混剪推荐参数');
+
+            // 1）模板：影视混剪（复用 film 模板的深度预设）
+            const tplSel = document.getElementById('template');
+            if (tplSel) {
+                tplSel.value = 'film';
+                try {
+                    applyRemixTemplate('film');
+                } catch (e) {
+                    console.log('applyRemixTemplate 调用失败:', e);
+                }
+            }
+
+            // 2）目标时长：自定义 90 秒，适合短视频影视合集
+            const durationModeEl = document.getElementById('durationModeRemix');
+            const customDurEl = document.getElementById('customDurationRemix');
+            if (durationModeEl && customDurEl) {
+                durationModeEl.value = 'custom';
+                customDurEl.value = 90;
+                if (typeof updateRemixDurationUI === 'function') {
+                    updateRemixDurationUI();
+                }
+            }
+
+            // 3）目标平台/分辨率：默认推荐抖音竖屏 + 1080P
+            const platformSel = document.getElementById('remixTargetPlatform');
+            if (platformSel) platformSel.value = 'douyin';
+
+            const resolutionSel = document.getElementById('remixVideoResolution');
+            if (resolutionSel) resolutionSel.value = '1080p';
+
+            // 4）输出质量：1080P 高清
+            const qualitySel = document.getElementById('quality');
+            if (qualitySel) qualitySel.value = '1080p';
+
+            // 5）智能功能开关：默认开启高光/转场/BGM
+            const autoHighlightEl = document.getElementById('autoHighlight');
+            if (autoHighlightEl) autoHighlightEl.checked = true;
+
+            const autoTransitionEl = document.getElementById('autoTransition');
+            if (autoTransitionEl) autoTransitionEl.checked = true;
+
+            const autoBGMEl = document.getElementById('autoBGM');
+            if (autoBGMEl) autoBGMEl.checked = true;
+
+            try {
+                if (typeof saveRemixPreferences === 'function') {
+                    saveRemixPreferences();
+                }
+            } catch (e) {
+                console.log('applyMovieRemixPreset saveRemixPreferences 失败:', e);
+            }
+
+            if (window.Notification && Notification.info) {
+                Notification.info('已套用影视混剪推荐参数：适合 60-120 秒剧情向合集，可根据素材数量和平台再做微调。');
+            }
+        }
+
+        // 一键节奏预设（仅作用于音乐卡点配置）
+        function applyBeatPreset(presetKey) {
+            const beatDetSel = document.getElementById('beatDetection');
+            const beatSenSel = document.getElementById('beatSensitivity');
+            const fastKeySel = document.getElementById('fastKeyframe');
+            const slowKeySel = document.getElementById('slowKeyframe');
+            const speedCurveSel = document.getElementById('speedCurve');
+            const beatTransSel = document.getElementById('beatTransition');
+            const rhythmSel = document.getElementById('rhythmMatch');
+            const syncSel = document.getElementById('syncPrecision');
+            const hintEl = document.getElementById('beatPresetHint');
+
+            const setVal = (el, val) => { if (el) el.value = val; };
+
+            let msg = '';
+            if (presetKey === 'extreme') {
+                // 极限卡点：高敏感度 + 半拍/一拍密集卡点，闪白强冲击与高同步精度
+                setVal(beatDetSel, 'tempo');
+                setVal(beatSenSel, 'high');
+                setVal(fastKeySel, 'beat');
+                setVal(slowKeySel, 'none');
+                setVal(speedCurveSel, 'sharp');
+                setVal(beatTransSel, 'flash');
+                setVal(rhythmSel, 'intense');
+                setVal(syncSel, 'frame');
+                msg = '极限卡点：高敏感度 + 半拍/一拍密集卡点，闪白强冲击与逐帧同步，适合燃向鼓点与高能战斗场面。';
+            } else if (presetKey === 'cinematic') {
+                // 电影感卡点：低敏感度 + 平滑速度曲线，以段落和情绪为主
+                setVal(beatDetSel, 'onset');
+                setVal(beatSenSel, 'low');
+                setVal(fastKeySel, 'strong');
+                setVal(slowKeySel, 'transition');
+                setVal(speedCurveSel, 'smooth');
+                setVal(beatTransSel, 'cut');
+                setVal(rhythmSel, 'auto');
+                setVal(syncSel, 'subframe');
+                msg = '电影感卡点：低敏感度 + 平滑速度曲线，突出段落和情绪节点，适合电影预告/情绪蒙太奇。';
+            } else if (presetKey === 'mv') {
+                // 动感MV：中高敏感度 + 一拍一剪为主，缩放冲击转场
+                setVal(beatDetSel, 'ml');
+                setVal(beatSenSel, 'medium');
+                setVal(fastKeySel, 'beat');
+                setVal(slowKeySel, 'climax');
+                setVal(speedCurveSel, 'smooth');
+                setVal(beatTransSel, 'zoom');
+                setVal(rhythmSel, 'intense');
+                setVal(syncSel, 'subframe');
+                msg = '动感MV：中高敏感度 + 一拍一剪为主，缩放冲击转场，适合舞蹈/综艺/MV 卡点。';
+            } else if (presetKey === 'relax') {
+                // 慢节奏/氛围：低敏感度 + 更长片段、柔和切换
+                setVal(beatDetSel, 'onset');
+                setVal(beatSenSel, 'low');
+                setVal(fastKeySel, 'auto');
+                setVal(slowKeySel, 'transition');
+                setVal(speedCurveSel, 'smooth');
+                setVal(beatTransSel, 'cut');
+                setVal(rhythmSel, 'calm');
+                setVal(syncSel, 'beat');
+                msg = '慢节奏/氛围：低敏感度 + 更长片段与柔和切换，整体跟随大段落起伏，适合氛围/lofi/风光类素材。';
+            } else {
+                // 回到默认节奏配置（适合大多数场景）
+                setVal(beatDetSel, 'ml');
+                setVal(beatSenSel, 'medium');
+                setVal(fastKeySel, 'auto');
+                setVal(slowKeySel, 'climax');
+                setVal(speedCurveSel, 'smooth');
+                setVal(beatTransSel, 'cut');
+                setVal(rhythmSel, 'auto');
+                setVal(syncSel, 'subframe');
+                msg = '已恢复默认节奏配置：中等敏感度 + 平滑速度曲线 + 普通快切，适合大多数BGM。';
+            }
+
+            if (hintEl && msg) {
+                hintEl.textContent = msg;
+            }
+            try {
+                if (window.Notification && Notification.info && msg) {
+                    Notification.info(msg);
+                }
+            } catch (e) {}
+        }
+
+        // 处理音乐文件上传
+        function handleMusicUpload(input) {
+            const file = input.files[0];
+            if (file) {
+                // 验证文件类型
+                if (!file.type.startsWith('audio/')) {
+                    Notification.warning('请上传音频文件（MP3/WAV/FLAC）');
+                    return;
+                }
+
+                uploadedMusicFile = file;
+                selectedBGM = file.path || file.name;
+
+                // 显示音乐信息
+                const info = document.getElementById('musicInfo');
+                info.style.display = 'block';
+                info.innerHTML = `
+                    <div style="padding: 20px; background: white; border-radius: 12px; border: 2px solid #f5576c;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="font-size: 48px;">🎵</div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 8px;">
+                                    ✅ 已选择音乐: ${file.name}
+                                </div>
+                                <div style="font-size: 13px; color: #666;">
+                                    <span>📦 大小: ${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                                    <span style="margin-left: 20px;">🎼 格式: ${file.name.split('.').pop().toUpperCase()}</span>
+                                </div>
+                                <div style="font-size: 13px; color: #f5576c; margin-top: 8px;">
+                                    💡 系统将自动分析音乐节奏并检测卡点位置
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                Notification.info('音乐文件已选择，正在上传到服务器...');
+
+                // 将音乐文件上传到服务器，供后端混剪任务使用
+                const formData = new FormData();
+                formData.append('audio', file);
+                fetch('/api/upload/audio', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.code === 0 && data.data && data.data.path) {
+                        selectedBGM = data.data.path;
+                        try { file.path = data.data.path; } catch (e) {}
+                        Notification.success('音乐文件已上传，将自动进行节奏分析');
+                    } else {
+                        Notification.error('音乐上传失败: ' + (data && data.msg || '未知错误'));
+                    }
+                })
+                .catch(err => {
+                    console.error('音乐上传失败:', err);
+                    Notification.error('音乐上传失败: ' + (err.message || '网络错误'));
+                });
+            }
+        }
+
+        // 切换配音设置显示
+        function toggleVoiceoverSettings(show) {
+            const settings = document.getElementById('voiceoverSettings');
+            settings.style.display = show ? 'block' : 'none';
+        }
+
+        // 选择混剪TTS引擎
+        function selectRemixTTSEngine(engine, element) {
+            // 移除所有active类
+            const engineCards = element.closest('.tts-engine-row').querySelectorAll('.engine-mini-card');
+            engineCards.forEach(card => card.classList.remove('active'));
+            // 添加active类到选中的卡片
+            element.classList.add('active');
+            // 保存选择
+            selectedRemixTTSEngine = engine;
+            
+            // 切换音色显示
+            if (engine === 'voice-clone') {
+                document.getElementById('edgeTTSVoicesRemix').style.display = 'none';
+                document.getElementById('voiceCloneVoicesRemix').style.display = 'block';
+                selectedRemixVoice = 'zh';
+            } else {
+                document.getElementById('edgeTTSVoicesRemix').style.display = 'block';
+                document.getElementById('voiceCloneVoicesRemix').style.display = 'none';
+                selectedRemixVoice = 'zh-CN-XiaoxiaoNeural';
+            }
+            
+            console.log('已选择混剪TTS引擎:', engine);
+            saveRemixPreferences();
+        }
+
+        // 选择混剪音色
+        function selectRemixVoice(voice, element) {
+            // 移除同一音色库中所有卡片的active类
+            const voiceGrid = element.closest('.voice-grid-compact');
+            voiceGrid.querySelectorAll('.voice-card-mini').forEach(card => {
+                card.classList.remove('active');
+            });
+            // 添加active类到选中的卡片
+            element.classList.add('active');
+            // 保存选择
+            selectedRemixVoice = voice;
+            console.log('已选择混剪音色:', voice);
+            saveRemixPreferences();
+        }
+
+        // 选择视觉模型
+        function selectVisionModel(model, element) {
+            // 移除所有active类
+            const cards = element.closest('.model-grid').querySelectorAll('.model-card');
+            cards.forEach(card => {
+                card.classList.remove('active');
+            });
+            // 添加active类到选中的卡片
+            element.classList.add('active');
+            // 保存选择
+            selectedVisionModel = model;
+            console.log('已选择视觉模型:', model);
+            saveRemixPreferences();
+        }
+
+        function handleVideoUpload(input) {
+            const files = Array.from((input && input.files) || []);
+
+            // 默认行为：在现有列表基础上追加新文件
+            // 当 input.__fullList 为 true 时，表示传入的是“完整列表”，需要直接覆盖 uploadedFiles
+            if (input && input.__fullList) {
+                uploadedFiles = files;
+            } else {
+                uploadedFiles = (uploadedFiles || []).concat(files);
+            }
+
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            uploadedFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <div>
+                        <strong>${file.name}</strong>
+                        <span style="color: #999; margin-left: 10px;">${Utils.formatFileSize(file.size)}</span>
+                    </div>
+                    <button onclick="removeFile(${index})" style="background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">删除</button>
+                `;
+                fileList.appendChild(item);
+            });
+
+            // 计算源视频总时长
+            computeRemixSourceDuration(uploadedFiles).then(total => {
+                window.remixSourceDurationSeconds = total;
+                const count = uploadedFiles.length || 0;
+                if (total > 7200 || count > 50) {
+                    Notification.warning('检测到素材总时长超过 2 小时或素材数量超过 50 个，本次混剪可能失败或耗时过长，建议先拆分成多个项目处理。');
+                } else if (total > 3600 || count > 30) {
+                    Notification.info('素材总时长超过 1 小时或素材数量较多，混剪时间会明显变长，建议适当缩短目标时长或减少素材数量。');
+                }
+                const hint = document.getElementById('sourceDurationHintRemix');
+                if (hint) {
+                    if (total > 0) {
+                        const human = formatDurationHMS(total);
+                        const sec = Math.floor(total);
+                        hint.textContent = `源视频总时长：${human}（${sec}秒），请选择下方目标时长模式`;
+                    } else {
+                        hint.textContent = '无法自动读取总时长，请切换为“自定义时长”并手动输入秒数';
+                    }
+                }
+                updateRemixDurationUI();
+            }).catch(()=>{
+                const hint = document.getElementById('sourceDurationHintRemix');
+                if (hint) {
+                    hint.textContent = '无法自动读取总时长，请切换为“自定义时长”并手动输入秒数';
+                }
+                window.remixSourceDurationSeconds = 0;
+                updateRemixDurationUI();
+            });
+        }
+
+        // 从已上传素材中选择视频（仅来自混剪项目的素材表）
+        async function openRemixMaterialPicker() {
+            try {
+                // 兼容 layer 未初始化的情况
+                const layerApi = (window.layer || (window.layui && window.layui.layer));
+                if (!layerApi || !layerApi.msg || !layerApi.open) {
+                    alert('当前弹窗组件未正确加载，无法打开“复用素材”对话框，请检查网络或稍后刷新页面重试。');
+                    return;
+                }
+                const layer = layerApi;
+
+                const loading = layer.msg('正在加载混剪项目素材...', {icon: 16, time: 0, shade: 0.25});
+                const resp = await fetch('/api/projects?type=remix&limit=20&sort=updated_at&order=desc').then(r => r.json()).catch(() => null);
+                layer.close(loading);
+
+                const projects = (resp && resp.code === 0 && resp.data && Array.isArray(resp.data.projects))
+                    ? resp.data.projects
+                    : [];
+
+                if (!projects.length) {
+                    layer.msg('暂无已完成的混剪项目。此功能用于复用历史项目的素材，避免重复上传。如果是首次使用，请直接上传视频。', {icon: 0, time: 4000});
+                    return;
+                }
+
+                const allMaterials = [];
+                for (const p of projects) {
+                    const pid = p.id;
+                    if (!pid) continue;
+                    try {
+                        const mRes = await fetch('/api/materials?project_id=' + encodeURIComponent(pid)).then(r => r.json()).catch(() => null);
+                        const mats = (mRes && mRes.code === 0 && Array.isArray(mRes.data)) ? mRes.data : [];
+                        mats.forEach(m => {
+                            const t = (m.type || '').toString().toLowerCase();
+                            if (t === 'video') {
+                                allMaterials.push({
+                                    project_id: pid,
+                                    project_name: p.name || '未命名项目',
+                                    id: m.id,
+                                    name: m.name || '',
+                                    path: m.path || '',
+                                    size: m.size || 0,
+                                    duration: m.duration || 0
+                                });
+                            }
+                        });
+                    } catch (e) {
+                        console.warn('加载混剪项目素材失败:', e);
+                    }
+                }
+
+                if (!allMaterials.length) {
+                    layer.msg('已找到混剪项目，但未检测到可复用的视频素材。', {icon: 0, time: 3500});
+                    return;
+                }
+
+                const formatSize = function(bytes) {
+                    if (!bytes || bytes <= 0) return '未知大小';
+                    const mb = bytes / 1024 / 1024;
+                    return mb.toFixed(2) + ' MB';
+                };
+
+                let html = '<div style="padding:12px 16px;">';
+                html += '<div style="font-size:13px; color:#4b5563; margin-bottom:8px;">';
+                html += '请选择一个已存在混剪项目中的视频素材，点击条目即可复用。若需添加多个，可多次打开本列表。';
+                html += '</div>';
+                html += '<div id="remix-material-list" style="max-height:360px; overflow:auto;">';
+
+                allMaterials.forEach(function(m, idx) {
+                    const safeProj = (m.project_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const safeName = (m.name || m.path || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const sizeText = formatSize(m.size);
+                    html += '<div class="remix-material-item" data-idx="' + idx + '" style="padding:8px 10px; margin-bottom:6px; border-radius:6px; background:#f9fafb; border:1px solid #e5e7eb; cursor:pointer;">';
+                    html += '<div style="font-size:13px; color:#111827; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🎬 [' + safeProj + '] ' + safeName + '</div>';
+                    html += '<div style="font-size:12px; color:#6b7280; margin-top:2px;">大小：' + sizeText + '</div>';
+                    html += '</div>';
+                });
+
+                html += '</div></div>';
+
+                const layerIndex = layer.open({
+                    type: 1,
+                    title: '从混剪项目素材中选择视频',
+                    area: ['640px', '460px'],
+                    content: html
+                });
+
+                setTimeout(function () {
+                    const listEl = document.getElementById('remix-material-list');
+                    if (!listEl) return;
+                    const items = listEl.querySelectorAll('.remix-material-item');
+                    items.forEach(function (el) {
+                        el.addEventListener('click', function () {
+                            const idxStr = el.getAttribute('data-idx') || '0';
+                            const i = parseInt(idxStr, 10) || 0;
+                            const m = allMaterials[i];
+                            if (!m || !m.path) return;
+
+                            const pseudoFile = {
+                                name: m.name || m.path,
+                                size: m.size || 0,
+                                path: m.path
+                            };
+
+                            // 利用已有的上传处理逻辑，将服务器已有素材插入到列表中
+                            handleVideoUpload({files: [pseudoFile]});
+
+                            if (window.Notification && Notification.success) {
+                                Notification.success('已添加混剪项目素材：' + (m.name || m.path));
+                            }
+
+                            layer.close(layerIndex);
+                        });
+                    });
+                }, 0);
+            } catch (e) {
+                const layerApi = (window.layer || (window.layui && window.layui.layer));
+                if (layerApi && layerApi.msg) {
+                    layerApi.msg('获取混剪项目素材失败: ' + (e && e.message ? e.message : '网络错误'), {icon: 2, time: 3000});
+                } else {
+                    alert('获取混剪项目素材失败: ' + (e && e.message ? e.message : '网络错误'));
+                }
+            }
+        }
+
+        function removeFile(index) {
+            // 从当前列表中移除指定下标的文件
+            if (!Array.isArray(uploadedFiles)) {
+                uploadedFiles = [];
+            }
+            uploadedFiles.splice(index, 1);
+
+            // 清空原生 file input，避免残留选择
+            const inputEl = document.getElementById('videoFiles');
+            if (inputEl) {
+                inputEl.value = '';
+            }
+
+            // 使用“完整列表”模式刷新显示与总时长，而不是在原有基础上再次 concat
+            handleVideoUpload({files: uploadedFiles, __fullList: true});
+        }
+
+        function formatDurationHMS(seconds) {
+            const total = Math.max(0, Math.floor(seconds || 0));
+            const h = Math.floor(total / 3600);
+            const m = Math.floor((total % 3600) / 60);
+            const s = total % 60;
+            if (h > 0) {
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function selectStyle(style, element) {
+            selectedStyle = style;
+            document.querySelectorAll('.style-option').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            saveRemixPreferences();
+        }
+
+        // 模板下拉监听
+        (function initTemplateSelect(){
+            const tpl = document.getElementById('template');
+            if (!tpl) return;
+            tpl.addEventListener('change', function(){
+                applyRemixTemplate(this.value);
+                saveRemixPreferences();
+            });
+        })();
+
+        // 计算多个本地视频文件的总时长（支持本地文件和服务器路径）
+        function computeRemixSourceDuration(files){
+            const list = Array.isArray(files) ? files : [];
+            const tasks = list.map(file => new Promise(async resolve => {
+                try{
+                    // 如果是本地File对象，直接读取时长
+                    if (file instanceof File || file instanceof Blob) {
+                        const url = URL.createObjectURL(file);
+                        const v = document.createElement('video');
+                        v.preload = 'metadata';
+                        v.src = url;
+                        v.onloadedmetadata = () => {
+                            URL.revokeObjectURL(url);
+                            resolve(Math.max(0, v.duration || 0));
+                        };
+                        v.onerror = () => { try{URL.revokeObjectURL(url);}catch(e){} resolve(0); };
+                        return;
+                    }
+                    
+                    // 如果是服务器路径对象，尝试通过API获取时长
+                    if (file && file.path) {
+                        try {
+                            const response = await fetch('/api/video/info', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({video_path: file.path})
+                            });
+                            
+                            if (!response.ok) {
+                                console.warn(`⚠️ API响应失败: HTTP ${response.status}`);
+                                resolve(0);
+                                return;
+                            }
+                            
+                            const data = await response.json();
+                            if (data.code === 0 && data.data && data.data.duration) {
+                                console.log(`✅ 获取视频时长成功: ${file.path} = ${data.data.duration}秒`);
+                                resolve(Math.max(0, data.data.duration));
+                                return;
+                            } else {
+                                console.warn(`⚠️ API返回错误: ${data.msg || '未知错误'}`);
+                            }
+                        } catch (e) {
+                            console.warn('⚠️ 通过API获取视频时长失败:', e);
+                        }
+                    }
+                    
+                    // 其他情况返回0
+                    resolve(0);
+                }catch(e){ 
+                    console.error('❌ 计算视频时长失败:', e);
+                    resolve(0); 
+                }
+            }));
+            return Promise.all(tasks).then(durs => durs.reduce((a,b)=>a+b,0));
+        }
+
+        // 目标时长选择逻辑（混剪）
+        function updateRemixDurationUI(){
+            const modeSel = document.getElementById('durationModeRemix');
+            const customInput = document.getElementById('customDurationRemix');
+            const hint = document.getElementById('sourceDurationHintRemix');
+            const mode = modeSel ? modeSel.value : 'full';
+            const src = Math.max(0, Math.floor(window.remixSourceDurationSeconds || 0));
+            let target = null;
+
+            if (mode === 'custom') {
+                if (customInput) customInput.style.display = 'block';
+                const val = parseInt(customInput && customInput.value ? customInput.value : 0);
+                if (src > 0) target = Math.min(src, Math.max(1, val || 0)); else target = Math.max(1, val || 0);
+            } else {
+                if (customInput) customInput.style.display = 'none';
+                if (src > 0) {
+                    if (mode === 'full') target = src;
+                    else if (mode === 'one_third') target = Math.max(1, Math.floor(src / 3));
+                    else if (mode === 'two_thirds') target = Math.max(1, Math.floor(src * 2 / 3));
+                }
+            }
+
+            window.remixTargetSeconds = target;
+            if (hint) {
+                if (src <= 0) {
+                    hint.textContent = '无法自动读取总时长，请切换为“自定义时长”并手动输入秒数';
+                } else {
+                    let selTxt;
+                    if (target && target > 0) {
+                        selTxt = `${formatDurationHMS(target)}（${target}秒）`;
+                        if (mode === 'one_third' || mode === 'two_thirds') {
+                            const ratioText = mode === 'one_third' ? '1/3' : '2/3';
+                            selTxt += `，按总时长${ratioText}向下取整到秒`;
+                        }
+                    } else {
+                        selTxt = '未确定（等待素材上传或输入自定义时长）';
+                    }
+                    const srcTxt = `${formatDurationHMS(src)}（${src}秒）`;
+                    hint.textContent = `源视频总时长：${srcTxt}，已选择：${selTxt}`;
+                }
+            }
+            const display = document.getElementById('remixTargetDisplay');
+            if (display) {
+                if (target && target > 0) {
+                    display.textContent = `${formatDurationHMS(target)}（${target}秒）`;
+                } else {
+                    display.textContent = '未确定';
+                }
+            }
+            // 持久化时长偏好
+            saveRemixPreferences();
+        }
+
+        // 页面初始化：绑定配置变更并恢复偏好
+        document.addEventListener('DOMContentLoaded', function(){
+            const selectIds = [
+                'durationModeRemix', 'shotDetection', 'sceneSegmentation', 'selectionStrategy',
+                'emotionThreshold', 'importanceWeight', 'narrativeCoherence', 'editingRules',
+                'timelineOptimization', 'remixVisualFeature', 'remixAudioFeature',
+                'remixFeatureFusion', 'remixFeatureNorm', 'remixSpeedPriority',
+                'remixParallelCompute', 'remixModelOpt', 'remixCacheStrategy',
+                'remixTargetPlatform', 'remixVideoResolution', 'remixVideoCodec',
+                'remixBitrateControl', 'beatDetection', 'beatSensitivity',
+                'fastKeyframe', 'slowKeyframe', 'speedCurve', 'beatTransition',
+                'rhythmMatch', 'syncPrecision'
+            ];
+            selectIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', saveRemixPreferences);
+                }
+            });
+
+            const customDur = document.getElementById('customDurationRemix');
+            if (customDur) {
+                customDur.addEventListener('change', saveRemixPreferences);
+                customDur.addEventListener('input', saveRemixPreferences);
+            }
+
+            loadRemixPreferences();
+
+            // 加载最近混剪项目
+            loadRecentRemixProjects();
+        });
+
+        function saveRemixPreferences(){
+            try {
+                const prefs = {
+                    remixMode: selectedRemixMode || 'general',
+                    style: selectedStyle || 'dynamic',
+                    visionModel: selectedVisionModel || 'gpt4v',
+                    ttsEngine: selectedRemixTTSEngine || 'edge-tts',
+                    voice: selectedRemixVoice || 'zh-CN-XiaoxiaoNeural',
+                    durationMode: document.getElementById('durationModeRemix') ? document.getElementById('durationModeRemix').value : null,
+                    customDuration: document.getElementById('customDurationRemix') ? document.getElementById('customDurationRemix').value : null,
+                    template: document.getElementById('template') ? document.getElementById('template').value : null,
+                    // AI流程相关
+                    shotDetection: document.getElementById('shotDetection') ? document.getElementById('shotDetection').value : null,
+                    sceneSegmentation: document.getElementById('sceneSegmentation') ? document.getElementById('sceneSegmentation').value : null,
+                    selectionStrategy: document.getElementById('selectionStrategy') ? document.getElementById('selectionStrategy').value : null,
+                    emotionThreshold: document.getElementById('emotionThreshold') ? document.getElementById('emotionThreshold').value : null,
+                    importanceWeight: document.getElementById('importanceWeight') ? document.getElementById('importanceWeight').value : null,
+                    narrativeCoherence: document.getElementById('narrativeCoherence') ? document.getElementById('narrativeCoherence').value : null,
+                    editingRules: document.getElementById('editingRules') ? document.getElementById('editingRules').value : null,
+                    timelineOptimization: document.getElementById('timelineOptimization') ? document.getElementById('timelineOptimization').value : null,
+                    remixVisualFeature: document.getElementById('remixVisualFeature') ? document.getElementById('remixVisualFeature').value : null,
+                    remixAudioFeature: document.getElementById('remixAudioFeature') ? document.getElementById('remixAudioFeature').value : null,
+                    remixFeatureFusion: document.getElementById('remixFeatureFusion') ? document.getElementById('remixFeatureFusion').value : null,
+                    remixFeatureNorm: document.getElementById('remixFeatureNorm') ? document.getElementById('remixFeatureNorm').value : null,
+                    remixSpeedPriority: document.getElementById('remixSpeedPriority') ? document.getElementById('remixSpeedPriority').value : null,
+                    remixParallelCompute: document.getElementById('remixParallelCompute') ? document.getElementById('remixParallelCompute').value : null,
+                    remixModelOpt: document.getElementById('remixModelOpt') ? document.getElementById('remixModelOpt').value : null,
+                    remixCacheStrategy: document.getElementById('remixCacheStrategy') ? document.getElementById('remixCacheStrategy').value : null,
+                    remixTargetPlatform: document.getElementById('remixTargetPlatform') ? document.getElementById('remixTargetPlatform').value : null,
+                    remixVideoResolution: document.getElementById('remixVideoResolution') ? document.getElementById('remixVideoResolution').value : null,
+                    remixVideoCodec: document.getElementById('remixVideoCodec') ? document.getElementById('remixVideoCodec').value : null,
+                    remixBitrateControl: document.getElementById('remixBitrateControl') ? document.getElementById('remixBitrateControl').value : null,
+                    // 音乐卡点参数
+                    beatDetection: document.getElementById('beatDetection') ? document.getElementById('beatDetection').value : null,
+                    beatSensitivity: document.getElementById('beatSensitivity') ? document.getElementById('beatSensitivity').value : null,
+                    fastKeyframe: document.getElementById('fastKeyframe') ? document.getElementById('fastKeyframe').value : null,
+                    slowKeyframe: document.getElementById('slowKeyframe') ? document.getElementById('slowKeyframe').value : null,
+                    speedCurve: document.getElementById('speedCurve') ? document.getElementById('speedCurve').value : null,
+                    beatTransition: document.getElementById('beatTransition') ? document.getElementById('beatTransition').value : null,
+                    rhythmMatch: document.getElementById('rhythmMatch') ? document.getElementById('rhythmMatch').value : null,
+                    syncPrecision: document.getElementById('syncPrecision') ? document.getElementById('syncPrecision').value : null
+                };
+                localStorage.setItem('jjyb_remix_prefs_v1', JSON.stringify(prefs));
+            } catch (e) {
+                console.log('保存混剪偏好失败:', e);
+            }
+        }
+
+        function loadRemixPreferences(){
+            try {
+                const raw = localStorage.getItem('jjyb_remix_prefs_v1');
+                if (!raw) return;
+                const prefs = JSON.parse(raw) || {};
+
+                // 混剪模式
+                if (prefs.remixMode) {
+                    const card = document.getElementById(prefs.remixMode === 'music' ? 'musicMode' : 'generalMode');
+                    if (card) {
+                        selectRemixMode(prefs.remixMode, card);
+                    } else {
+                        selectedRemixMode = prefs.remixMode;
+                    }
+                }
+
+                // 风格
+                if (prefs.style) {
+                    const card = document.querySelector(`.style-option[data-style="${prefs.style}"]`);
+                    if (card) {
+                        selectStyle(prefs.style, card);
+                    } else {
+                        selectedStyle = prefs.style;
+                    }
+                }
+
+                // 视觉模型
+                if (prefs.visionModel) {
+                    const cards = Array.from(document.querySelectorAll('.model-card'));
+                    const card = cards.find(c => {
+                        const oc = c.getAttribute('onclick') || '';
+                        const pattern = `selectVisionModel('${prefs.visionModel}'`;
+                        return oc.indexOf(pattern) !== -1;
+                    });
+                    if (card) {
+                        selectVisionModel(prefs.visionModel, card);
+                    } else {
+                        selectedVisionModel = prefs.visionModel;
+                    }
+                }
+
+                // TTS 引擎
+                if (prefs.ttsEngine) {
+                    const cards = Array.from(document.querySelectorAll('.engine-mini-card'));
+                    const card = cards.find(c => {
+                        const oc = c.getAttribute('onclick') || '';
+                        const pattern = `selectRemixTTSEngine('${prefs.ttsEngine}'`;
+                        return oc.indexOf(pattern) !== -1;
+                    });
+                    if (card) {
+                        selectRemixTTSEngine(prefs.ttsEngine, card);
+                    } else {
+                        selectedRemixTTSEngine = prefs.ttsEngine;
+                    }
+                }
+
+                // 配音音色
+                if (prefs.voice) {
+                    const cards = Array.from(document.querySelectorAll('.voice-card-mini'));
+                    const card = cards.find(c => {
+                        const oc = c.getAttribute('onclick') || '';
+                        const pattern = `selectRemixVoice('${prefs.voice}'`;
+                        return oc.indexOf(pattern) !== -1;
+                    });
+                    if (card) {
+                        selectRemixVoice(prefs.voice, card);
+                    } else {
+                        selectedRemixVoice = prefs.voice;
+                    }
+                }
+
+                // 模板
+                if (prefs.template) {
+                    const el = document.getElementById('template');
+                    if (el) el.value = prefs.template;
+                }
+
+                // 时长模式与自定义时长
+                if (prefs.durationMode) {
+                    const el = document.getElementById('durationModeRemix');
+                    if (el) el.value = prefs.durationMode;
+                }
+                if (typeof prefs.customDuration !== 'undefined' && prefs.customDuration !== null) {
+                    const el = document.getElementById('customDurationRemix');
+                    if (el) el.value = prefs.customDuration;
+                }
+                updateRemixDurationUI();
+
+                // 一般下拉配置
+                const selectMap = {
+                    shotDetection: 'shotDetection',
+                    sceneSegmentation: 'sceneSegmentation',
+                    selectionStrategy: 'selectionStrategy',
+                    emotionThreshold: 'emotionThreshold',
+                    importanceWeight: 'importanceWeight',
+                    narrativeCoherence: 'narrativeCoherence',
+                    editingRules: 'editingRules',
+                    timelineOptimization: 'timelineOptimization',
+                    remixVisualFeature: 'remixVisualFeature',
+                    remixAudioFeature: 'remixAudioFeature',
+                    remixFeatureFusion: 'remixFeatureFusion',
+                    remixFeatureNorm: 'remixFeatureNorm',
+                    remixSpeedPriority: 'remixSpeedPriority',
+                    remixParallelCompute: 'remixParallelCompute',
+                    remixModelOpt: 'remixModelOpt',
+                    remixCacheStrategy: 'remixCacheStrategy',
+                    remixTargetPlatform: 'remixTargetPlatform',
+                    remixVideoResolution: 'remixVideoResolution',
+                    remixVideoCodec: 'remixVideoCodec',
+                    remixBitrateControl: 'remixBitrateControl',
+                    beatDetection: 'beatDetection',
+                    beatSensitivity: 'beatSensitivity',
+                    fastKeyframe: 'fastKeyframe',
+                    slowKeyframe: 'slowKeyframe',
+                    speedCurve: 'speedCurve',
+                    beatTransition: 'beatTransition',
+                    rhythmMatch: 'rhythmMatch',
+                    syncPrecision: 'syncPrecision'
+                };
+                Object.keys(selectMap).forEach(k => {
+                    const id = selectMap[k];
+                    const el = document.getElementById(id);
+                    const val = prefs[k];
+                    if (el && val) {
+                        el.value = val;
+                    }
+                });
+            } catch (e) {
+                console.log('恢复混剪偏好失败:', e);
+            }
+        }
+
+        // 开始混剪 - 完整实现版本，调用真实后端API
+        function startRemix() {
+            console.log('🎵 开始智能混剪...');
+            console.log('📊 当前状态:', {
+                uploadedFiles: uploadedFiles.length,
+                remixSourceDuration: window.remixSourceDurationSeconds,
+                remixTargetSeconds: window.remixTargetSeconds,
+                selectedRemixMode: selectedRemixMode,
+                selectedStyle: selectedStyle
+            });
+            
+            const projectNameEl = document.getElementById('projectName');
+            const projectName = projectNameEl ? projectNameEl.value : '';
+            
+            if (!projectName) {
+                if (window.Notification && Notification.warning) {
+                    Notification.warning('请输入混剪项目名称');
+                } else {
+                    alert('请输入混剪项目名称');
+                }
+                return;
+            }
+            
+            if (!Array.isArray(uploadedFiles) || uploadedFiles.length < 2) {
+                if (window.Notification && Notification.warning) {
+                    Notification.warning('请至少上传或选择2个视频文件进行混剪');
+                } else {
+                    alert('请至少上传或选择2个视频文件进行混剪');
+                }
+                return;
+            }
+            
+            console.log('✅ 基础验证通过，准备显示确认对话框...');
+
+            const totalDur = Math.max(0, Math.floor(window.remixSourceDurationSeconds || 0));
+            const fileCount = uploadedFiles.length;
+            if (fileCount > 50 || totalDur > 7200) {
+                if (window.Notification && Notification.error) {
+                    Notification.error('当前素材过多或总时长超过 2 小时，暂不支持一次性混剪处理，请先拆分为多个项目或减少素材数量。');
+                } else {
+                    alert('当前素材过多或总时长超过 2 小时，暂不支持一次性混剪处理，请先拆分为多个项目或减少素材数量。');
+                }
+                return;
+            }
+            if (fileCount > 30 || totalDur > 3600) {
+                if (window.Notification && Notification.info) {
+                    Notification.info('当前素材较多或总时长超过 1 小时，本次混剪可能耗时较长，如出现失败建议拆分为多个项目处理。');
+                }
+            }
+
+            const autoHighlightEl = document.getElementById('autoHighlight');
+            const autoTransitionEl = document.getElementById('autoTransition');
+            const autoBGMEl = document.getElementById('autoBGM');
+            const autoHighlight = !!(autoHighlightEl && autoHighlightEl.checked);
+            const autoTransition = !!(autoTransitionEl && autoTransitionEl.checked);
+            const autoBGM = !!(autoBGMEl && autoBGMEl.checked);
+            const resolutionEl = document.getElementById('remixVideoResolution');
+            const platformEl = document.getElementById('remixTargetPlatform');
+            const resolutionText = resolutionEl ? resolutionEl.options[resolutionEl.selectedIndex].text : '';
+            const platformText = platformEl ? platformEl.options[platformEl.selectedIndex].text : '';
+            const modeText = selectedRemixMode || 'general';
+            const styleText = selectedStyle || 'auto';
+            // 获取目标时长，确保有合理默认值
+            let targetSeconds = window.remixTargetSeconds;
+            if (!targetSeconds || targetSeconds <= 0) {
+                // 如果没有设置目标时长，使用源视频总时长或默认60秒
+                targetSeconds = totalDur > 0 ? totalDur : 60;
+                console.log(`⚠️ 目标时长未设置，使用默认值: ${targetSeconds}秒`);
+            }
+            targetSeconds = parseInt(targetSeconds) || 60;
+
+            const durationLine = totalDur > 0
+                ? `素材数量：${fileCount} 个，总时长约：${totalDur} 秒`
+                : `素材数量：${fileCount} 个，总时长：无法自动读取（浏览器无法读取本地视频时长，但不影响后端混剪处理）`;
+
+            const summaryLines = [
+                `项目名称：${projectName}`,
+                durationLine,
+                `目标成片时长：${targetSeconds} 秒`,
+                `混剪模式：${modeText} · 风格：${styleText}`,
+                platformText || resolutionText ? `输出平台/分辨率：${[platformText, resolutionText].filter(Boolean).join(' / ')}` : '',
+                `自动高光：${autoHighlight ? '开启' : '关闭'} · 自动转场：${autoTransition ? '开启' : '关闭'} · 自动BGM：${autoBGM ? '开启' : '关闭'}`
+            ].filter(Boolean).join('\n');
+
+            const message = `即将开始智能混剪，整个过程将在后台执行，进度条和状态均基于真实后端任务返回。任务创建后，您也可以在“项目管理 - 混剪模式”中查看和管理相关项目。\n\n请确认关键信息：\n${summaryLines}\n\n现在开始处理吗？`;
+
+            const doStart = async () => {
+                document.getElementById('progressContainer').style.display = 'block';
+                document.getElementById('resultContainer').style.display = 'none';
+                updateProgress(0);
+                // 初始化进度条视觉
+                const pgFill = document.getElementById('progressFill');
+                const pgText = document.getElementById('progressText');
+                if (pgFill && pgText) {
+                    pgFill.style.width = '0%';
+                    pgFill.textContent = '0%';
+                    pgFill.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    pgText.textContent = '准备开始：等待上传视频素材...';
+                }
+                
+                try {
+                    // 第一步：确保所有本地视频文件已上传到服务器
+                    const serverVideoPaths = [];
+                    if (pgFill && pgText) {
+                        pgFill.style.width = '5%';
+                        pgFill.textContent = '5%';
+                        pgText.textContent = '正在上传本地视频素材到服务器...';
+                    }
+                    for (const file of uploadedFiles) {
+                        if (file && file.path) {
+                            // 已经有服务端路径（避免重复上传）
+                            serverVideoPaths.push(file.path);
+                            continue;
+                        }
+
+                        const fd = new FormData();
+                        fd.append('video', file);
+                        // 标记业务场景为混剪，后端将文件存入 uploads/remix_videos
+                        fd.append('scene', 'remix');
+                        const uploadRes = await fetch('/api/upload/video', {
+                            method: 'POST',
+                            body: fd
+                        });
+                        const uploadJson = await uploadRes.json();
+                        if (!uploadJson || uploadJson.code !== 0 || !uploadJson.data || !uploadJson.data.path) {
+                            throw new Error('视频上传失败，请检查网络或文件格式');
+                        }
+                        const serverPath = uploadJson.data.path;
+                        // 记录到 File 对象上，便于后续复用
+                        try { file.path = serverPath; } catch (e) {}
+                        serverVideoPaths.push(serverPath);
+                    }
+                    if (pgFill && pgText) {
+                        pgFill.style.width = '20%';
+                        pgFill.textContent = '20%';
+                        pgText.textContent = '素材上传完成，正在创建混剪项目...';
+                    }
+
+                    // 调用真实后端混剪API
+                    window.currentRemixMode = selectedRemixMode || 'general';
+                    const response = await fetch('/api/remix/generate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: projectName,
+                            video_paths: serverVideoPaths,
+                            style: selectedStyle || 'auto',
+                            target_duration: (window.remixTargetSeconds || 60),
+                            remix_mode: selectedRemixMode || 'general',
+                            auto_highlight: autoHighlight,
+                            auto_transition: autoTransition,
+                            auto_bgm: autoBGM,
+                            bgm_file: selectedBGM,
+                            transition_style: selectedTransition || 'fade',
+                            // 音乐卡点/节奏参数（仅在音乐模式下有效，后端会统一接收并决定是否使用）
+                            beatDetection: (function(){ const el = document.getElementById('beatDetection'); return el ? el.value : null; })(),
+                            beatSensitivity: (function(){ const el = document.getElementById('beatSensitivity'); return el ? el.value : null; })(),
+                            fastKeyframe: (function(){ const el = document.getElementById('fastKeyframe'); return el ? el.value : null; })(),
+                            slowKeyframe: (function(){ const el = document.getElementById('slowKeyframe'); return el ? el.value : null; })(),
+                            speedCurve: (function(){ const el = document.getElementById('speedCurve'); return el ? el.value : null; })(),
+                            beatTransition: (function(){ const el = document.getElementById('beatTransition'); return el ? el.value : null; })(),
+                            rhythmMatch: (function(){ const el = document.getElementById('rhythmMatch'); return el ? el.value : null; })(),
+                            syncPrecision: (function(){ const el = document.getElementById('syncPrecision'); return el ? el.value : null; })()
+                        })
+                    }).then(res => res.json());
+
+                    if (response.code === 0) {
+                        console.log('✅ 混剪项目创建成功:', response.data);
+                        Notification.success('混剪项目创建成功，开始智能混剪');
+                        if (pgFill && pgText) {
+                            pgFill.style.width = '30%';
+                            pgFill.textContent = '30%';
+                            pgText.textContent = '项目创建成功，正在进行混剪分析与生成...';
+                        }
+                        
+                        // 如果有task_id，监控进度；否则视为异常并提示失败
+                        if (response.data.task_id) {
+                            monitorRemixProgress(response.data.task_id);
+                        } else {
+                            console.error('❌ 混剪接口未返回任务ID', response);
+                            const friendlyMsg = '后端未返回混剪任务ID，任务可能未成功创建，请检查后端日志或稍后重试。';
+                            Notification.error(friendlyMsg);
+                            updateProgress(0);
+                            if (pgFill && pgText) {
+                                pgFill.style.width = '100%';
+                                pgFill.textContent = '失败';
+                                pgFill.style.background = 'linear-gradient(135deg, #f97373 0%, #ef4444 100%)';
+                                pgText.textContent = friendlyMsg;
+                            }
+                        }
+                    } else {
+                        console.error('❌ 混剪创建失败:', response.msg);
+                        const friendlyMsg = simplifyBackendError(response && response.msg, '混剪项目创建失败，请检查素材格式与参数配置后重试。');
+                        Notification.error(friendlyMsg);
+                        Notification.info('如果已成功创建项目，相关记录会保留在“项目管理-混剪模式”中，可稍后重新尝试处理。');
+                        updateProgress(0);
+                        if (pgFill && pgText) {
+                            pgFill.style.width = '100%';
+                            pgFill.textContent = '失败';
+                            pgFill.style.background = 'linear-gradient(135deg, #f97373 0%, #ef4444 100%)';
+                            pgText.textContent = '混剪项目创建失败，请检查素材与参数后重试。';
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ 混剪请求失败:', error);
+                    const friendlyMsg = simplifyBackendError(error && error.message, '混剪请求失败，请检查网络或稍后重试。您的素材选择和参数设置仍保留在当前页面。');
+                    Notification.warning(friendlyMsg);
+                    if (pgFill && pgText) {
+                        pgFill.style.width = '100%';
+                        pgFill.textContent = '失败';
+                        pgFill.style.background = 'linear-gradient(135deg, #f97373 0%, #ef4444 100%)';
+                        pgText.textContent = '混剪请求发送失败，请检查网络连接或稍后重试。';
+                    }
+                }
+            };
+
+            // 使用确认对话框（优先使用自定义Notification.confirm，回退到原生confirm）
+            try {
+                if (window.Notification && typeof Notification.confirm === 'function') {
+                    Notification.confirm(message, () => { doStart(); });
+                } else {
+                    // 回退到原生confirm
+                    console.log('⚠️ 自定义Notification.confirm不可用，使用原生confirm');
+                    if (window.confirm(message)) {
+                        doStart();
+                    }
+                }
+            } catch (e) {
+                console.error('❌ 显示确认对话框失败:', e);
+                // 最后的回退方案：直接执行
+                if (window.confirm('确认开始混剪吗？')) {
+                    doStart();
+                }
+            }
+        }
+        
+        // 监控混剪进度
+        async function monitorRemixProgress(taskId) {
+            console.log('📊 监控混剪进度:', taskId);
+            
+            const checkProgress = async () => {
+                try {
+                    const response = await fetch(`/api/remix/progress/${taskId}`).then(res => res.json());
+                    
+                    if (response.code === 0 && response.data) {
+                        const progress = response.data.progress || 0;
+                        const status = response.data.status;
+                        
+                        updateProgress(progress);
+                        
+                        if (status === 'completed') {
+                            console.log('✅ 混剪完成!');
+                            Notification.success('混剪完成！已生成成片预览。');
+                            showRemixResult(response.data);
+                            return;
+                        } else if (status === 'failed') {
+                            console.error('❌ 混剪失败');
+                            const errText = (response.data && response.data.error) || '后端返回失败状态';
+                            const friendlyMsg = simplifyBackendError(errText, '混剪失败，请检查素材格式与参数配置后重试。');
+                            Notification.error(friendlyMsg);
+                            const pgContainer = document.getElementById('progressContainer');
+                            const pgFill = document.getElementById('progressFill');
+                            const pgText = document.getElementById('progressText');
+                            if (pgContainer && pgFill && pgText) {
+                                pgContainer.style.display = 'block';
+                                pgFill.style.width = '100%';
+                                pgFill.textContent = '失败';
+                                pgFill.style.background = 'linear-gradient(135deg, #f97373 0%, #ef4444 100%)';
+                                pgText.textContent = '混剪任务失败，请检查参数配置或稍后重试。';
+                            }
+                            return;
+                        }
+                        
+                        // 继续监控
+                        setTimeout(checkProgress, 1000);
+                    } else if (response && response.code !== 0) {
+                        console.error('❌ 混剪进度查询失败:', response.msg);
+                        const friendlyMsg = simplifyBackendError(response && response.msg, '混剪进度查询失败，请稍后重试。');
+                        Notification.error(friendlyMsg);
+                        const pgContainer = document.getElementById('progressContainer');
+                        const pgFill = document.getElementById('progressFill');
+                        const pgText = document.getElementById('progressText');
+                        if (pgContainer && pgFill && pgText) {
+                            pgContainer.style.display = 'block';
+                            pgFill.style.width = '100%';
+                            pgFill.textContent = '失败';
+                            pgFill.style.background = 'linear-gradient(135deg, #f97373 0%, #ef4444 100%)';
+                            pgText.textContent = '混剪进度查询失败，请稍后重试。';
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ 获取进度失败:', error);
+                    const friendlyMsg = simplifyBackendError(error && error.message, '混剪进度查询失败，请检查网络或稍后重试。');
+                    Notification.error(friendlyMsg);
+                    const pgContainer = document.getElementById('progressContainer');
+                    const pgFill = document.getElementById('progressFill');
+                    const pgText = document.getElementById('progressText');
+                    if (pgContainer && pgFill && pgText) {
+                        pgContainer.style.display = 'block';
+                        pgFill.style.width = '100%';
+                        pgFill.textContent = '失败';
+                        pgFill.style.background = 'linear-gradient(135deg, #f97373 0%, #ef4444 100%)';
+                        pgText.textContent = '混剪进度查询失败，请检查网络或稍后重试。';
+                    }
+                }
+            };
+            
+            checkProgress();
+        }
+        
+        // 显示混剪结果
+        function showRemixResult(data) {
+            console.log('🎬 显示混剪结果:', data);
+            
+            document.getElementById('progressContainer').style.display = 'none';
+            document.getElementById('resultContainer').style.display = 'block';
+            
+            // 显示预览视频
+            if (data.video_url) {
+                document.getElementById('resultVideo').src = data.video_url;
+            }
+            
+            // 显示统计信息
+            document.getElementById('resultInfo').innerHTML = `
+                <p><strong>混剪完成！</strong></p>
+                <p>视频数量: ${data.video_count || uploadedFiles.length}个</p>
+                <p>总时长: ${data.duration || 0}秒</p>
+                <p>输出文件: ${data.output_file || '未知'}</p>
+            `;
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressFill').textContent = percent + '%';
+            
+            let message = '';
+            const mode = (window.currentRemixMode || 'general');
+            if (mode === 'music') {
+                if (percent < 20) message = '正在上传素材并准备音乐分析...';
+                else if (percent < 40) message = '正在分析音乐节奏与卡点...';
+                else if (percent < 70) message = '正在根据节拍智能剪辑片段...';
+                else if (percent < 90) message = '正在合成卡点混剪并叠加BGM...';
+                else message = '正在完成收尾与导出...';
+            } else {
+                if (percent < 30) message = '正在分析视频...';
+                else if (percent < 60) message = '正在识别精彩片段...';
+                else if (percent < 90) message = '正在生成混剪...';
+                else message = '正在添加特效...';
+            }
+            
+            document.getElementById('progressText').textContent = message;
+        }
+    </script>
+    <style>
+        .cleanup-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999}
+        .cleanup-dialog{width:560px;max-width:92vw;background:#fff;border-radius:16px;box-shadow:0 25px 80px rgba(0,0,0,0.35);overflow:hidden}
+        .cleanup-header{padding:18px 20px;background:linear-gradient(135deg, #f093fb 0%, #f5576c 100%);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+        .cleanup-body{padding:18px 20px}
+        .cleanup-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+        .cleanup-chip{border:2px solid #e5e7eb;border-radius:10px;padding:10px 12px;text-align:center;cursor:pointer;user-select:none;transition:.2s}
+        .cleanup-chip.active{border-color:#f5576c;background:linear-gradient(135deg, rgba(240,147,251,0.08) 0%, rgba(245,87,108,0.08) 100%)}
+        .cleanup-warning{margin:8px 0 0 0;font-size:12px;color:#ef4444}
+        .cleanup-preview{max-height:180px;overflow:auto;border:1px dashed #e5e7eb;border-radius:10px;padding:10px;margin-top:10px;font-size:12px;color:#444;background:#fafafa}
+        .cleanup-range-row{margin-top:8px;font-size:12px;color:#4b5563}
+        .cleanup-range-row label{margin-right:10px;cursor:pointer}
+        .cleanup-footer{display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;background:#f8fafc;border-top:1px solid #e5e7eb}
+        .btn-minor{padding:10px 14px;border-radius:8px;border:2px solid #e5e7eb;background:#fff;cursor:pointer;font-weight:600}
+        .btn-accent{padding:10px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#f093fb 0%, #f5576c 100%);color:#fff;cursor:pointer;font-weight:700}
+    </style>
+    <div id="cleanupOverlay" class="cleanup-overlay">
+        <div class="cleanup-dialog">
+            <div class="cleanup-header">
+                <span>清理产物</span>
+                <button class="btn-minor" onclick="closeCleanupModal()" style="border-color:rgba(255,255,255,0.6);color:#fff;background:transparent">关闭</button>
+            </div>
+            <div class="cleanup-body">
+                <div class="cleanup-grid">
+                    <div class="cleanup-chip active" data-key="cache" onclick="toggleCleanupChip(this)">缓存</div>
+                    <div class="cleanup-chip active" data-key="scripts" onclick="toggleCleanupChip(this)">文案脚本</div>
+                    <div class="cleanup-chip active" data-key="audio" onclick="toggleCleanupChip(this)">音频</div>
+                    <div class="cleanup-chip active" data-key="video" onclick="toggleCleanupChip(this)">视频</div>
+                    <div class="cleanup-chip active" data-key="frames" onclick="toggleCleanupChip(this)">画面帧</div>
+                    <div class="cleanup-chip active" data-key="subtitles" onclick="toggleCleanupChip(this)">字幕</div>
+                    <div class="cleanup-chip" data-key="source_audio" onclick="toggleCleanupChip(this)" style="border-color:#ef4444;color:#ef4444">源音频</div>
+                    <div class="cleanup-chip" data-key="source_video" onclick="toggleCleanupChip(this)" style="border-color:#ef4444;color:#ef4444">源视频</div>
+                </div>
+                <div class="cleanup-range-row">
+                    <span>时间范围：</span>
+                    <label><input type="radio" name="cleanupRange" value="1"> 最近1天</label>
+                    <label><input type="radio" name="cleanupRange" value="7"> 最近7天</label>
+                    <label><input type="radio" name="cleanupRange" value="30"> 最近30天</label>
+                    <label><input type="radio" name="cleanupRange" value="0" checked> 全部</label>
+                </div>
+                <div class="cleanup-chip" data-key="final" onclick="toggleCleanupChip(this)" style="display:inline-block">最终导出与成片（谨慎）</div>
+                <div class="cleanup-warning">注意：勾选"最终导出与成片"将删除 output/ 与 exports/ 下的最终文件。</div>
+                <div class="cleanup-warning" style="margin-top:4px">⚠️ 源音频、源视频：这是您上传的原始素材，删除后无法恢复！</div>
+                <div id="cleanupPreview" class="cleanup-preview" style="display:none"></div>
+            </div>
+            <div class="cleanup-footer">
+                <button class="btn-minor" onclick="previewCleanup()">预览</button>
+                <button class="btn-accent" onclick="executeCleanup()">执行清理</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let cleanupTarget = 'remix';
+        function openCleanupModal(target, accent){
+            cleanupTarget = target || 'remix';
+            const overlay = document.getElementById('cleanupOverlay');
+            const header = overlay.querySelector('.cleanup-header');
+            const accentBg = accent || '#f5576c';
+            header.style.background = `linear-gradient(135deg, ${accentBg} 0%, ${accentBg} 100%)`;
+            const titleEl = header.querySelector('span');
+            if (titleEl) {
+                if (cleanupTarget === 'commentary') titleEl.textContent = '清理原创解说产物';
+                else if (cleanupTarget === 'remix') titleEl.textContent = '清理混剪产物';
+                else if (cleanupTarget === 'voiceover') titleEl.textContent = '清理AI配音产物';
+                else titleEl.textContent = '清理产物';
+            }
+            const defaults = {
+                commentary: ['cache','scripts','audio','frames'],
+                remix: ['cache','video','frames'],
+                voiceover: ['cache','scripts','audio']
+            };
+            const activeKeys = defaults[cleanupTarget] || ['cache','scripts','audio','video','frames','subtitles'];
+            overlay.querySelectorAll('.cleanup-chip').forEach(ch=>{
+                const key = ch.dataset.key;
+                if (key === 'final') {
+                    ch.classList.remove('active');
+                    return;
+                }
+                if (activeKeys.indexOf(key) !== -1) ch.classList.add('active'); else ch.classList.remove('active');
+            });
+            const box = document.getElementById('cleanupPreview');
+            box.style.display='none';
+            box.innerHTML='';
+            overlay.style.display='flex';
+        }
+        function closeCleanupModal(){ document.getElementById('cleanupOverlay').style.display='none'; }
+        function toggleCleanupChip(el){ el.classList.toggle('active'); }
+        function getCleanupAgeDays(){
+            const overlay = document.getElementById('cleanupOverlay');
+            if (!overlay) return null;
+            const checked = overlay.querySelector('input[name="cleanupRange"]:checked');
+            if (!checked) return null;
+            const v = parseInt(checked.value, 10);
+            if (!v || isNaN(v) || v <= 0) return null;
+            return v;
+        }
+        function gatherIncludes(){
+            const map = {cache:false,scripts:false,audio:false,video:false,frames:false,subtitles:false,final:false};
+            document.getElementById('cleanupOverlay').querySelectorAll('.cleanup-chip').forEach(ch=>{ if(ch.classList.contains('active')) map[ch.dataset.key]=true; });
+            return map;
+        }
+        async function requestCleanup(target, includes, dryRun){
+            const ageDays = getCleanupAgeDays();
+            const body = {target, include: includes, dry_run: !!dryRun};
+            if (ageDays) body.max_age_days = ageDays;
+            return fetch('/api/cleanup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+        }
+        async function previewCleanup(){
+            const includes = gatherIncludes();
+            const res = await requestCleanup(cleanupTarget, includes, true);
+            if(!res||res.code!==0){ if(window.Notification&&Notification.error) Notification.error('预览失败'); else alert('预览失败'); return; }
+            const mb = (res.data.bytes/1024/1024).toFixed(2);
+            const list = (res.data.preview||[]).slice(0,50).map(p=>`<div>${p}</div>`).join('');
+            const box = document.getElementById('cleanupPreview');
+            box.style.display='block';
+            box.innerHTML = `<div>将删除 ${res.data.count} 项，约 ${mb} MB：</div>${list}`;
+        }
+        function executeCleanup(){
+            const includes = gatherIncludes();
+            const hasFinal = !!includes.final;
+            const hasSourceAudio = !!includes.source_audio;
+            const hasSourceVideo = !!includes.source_video;
+            
+            let message = '';
+            if (hasFinal) {
+                message = '确定要清理所选产物，并同时删除最终导出与成片吗？这将删除 output/ 与 exports/ 下的最终文件，操作不可恢复。';
+            } else if (hasSourceAudio || hasSourceVideo) {
+                const sourceTypes = [];
+                if (hasSourceAudio) sourceTypes.push('源音频');
+                if (hasSourceVideo) sourceTypes.push('源视频');
+                message = `⚠️ 警告：您选择了清理${sourceTypes.join('和')}！\n\n这些是您上传的原始素材文件，删除后将无法恢复！\n\n确定要继续吗？`;
+            } else {
+                message = '确定要清理所选产物吗？缓存和中间文件删除后将无法恢复。';
+            }
+
+            const doCleanup = async () => {
+                const res = await requestCleanup(cleanupTarget, includes, false);
+                if(res&&res.code===0){
+                    const freed=(res.data.bytes_freed/1024/1024).toFixed(2);
+                    if(window.Notification&&Notification.success) Notification.success(`清理完成：删除${res.data.deleted}项，释放${freed}MB`); else alert(`清理完成：删除${res.data.deleted}项，释放${freed}MB`);
+                    closeCleanupModal();
+                }else{
+                    const errMsg = (res && res.msg) ? res.msg : '清理失败';
+                    if(window.Notification&&Notification.error) Notification.error(errMsg); else alert(errMsg);
+                }
+            };
+
+            if (window.Notification && Notification.confirm) {
+                Notification.confirm(message, () => { doCleanup(); });
+            } else {
+                if (confirm(message)) {
+                    doCleanup();
+                }
+            }
+        }
+        function cleanupRemix(){ openCleanupModal('remix','#f5576c'); }
+    </script>
+</body>
+</html>

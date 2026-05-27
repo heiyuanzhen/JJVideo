@@ -1,0 +1,10 @@
+﻿logs/*
+!logs/.gitkeep
+output/*
+!output/.gitkeep
+uploads/*
+!uploads/.gitkeep
+temp/*
+!temp/.gitkeep
+
+config

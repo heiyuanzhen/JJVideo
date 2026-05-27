@@ -1,0 +1,4315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI配音 - AIJian</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto 60px auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .layout-two-cols {
+            display: grid;
+            grid-template-columns: minmax(0, 1.8fr) minmax(260px, 0.9fr);
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        @media (max-width: 960px) {
+            .layout-two-cols {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        .recent-panel {
+            background: #f0f9ff;
+            border-radius: 16px;
+            border: 1px solid #bfdbfe;
+            padding: 18px 16px 14px 16px;
+            box-shadow: 0 8px 24px rgba(59,130,246,0.18);
+        }
+
+        .recent-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .recent-panel-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .recent-panel-title span.icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .recent-panel-sub {
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .recent-list {
+            margin-top: 8px;
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .recent-item {
+            padding: 10px 10px;
+            border-radius: 10px;
+            border: 1px solid #dbeafe;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .recent-item:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 6px 18px rgba(59,130,246,0.18);
+            transform: translateY(-1px);
+        }
+
+        .recent-item-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .recent-item-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #111827;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .recent-item-meta {
+            margin-top: 3px;
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .recent-status {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .recent-status.completed {
+            background: rgba(16,185,129,0.1);
+            color: #059669;
+        }
+
+        .recent-status.processing {
+            background: rgba(59,130,246,0.1);
+            color: #2563eb;
+        }
+
+        .recent-status.pending {
+            background: rgba(251,191,36,0.1);
+            color: #d97706;
+        }
+
+        .recent-status.failed {
+            background: rgba(239,68,68,0.1);
+            color: #dc2626;
+        }
+
+        .recent-refresh {
+            margin-left: 6px;
+            font-size: 11px;
+            color: #2563eb;
+            cursor: pointer;
+        }
+
+        .recent-refresh:hover {
+            text-decoration: underline;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            color: #4facfe;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #4facfe;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        /* 横向网格布局 - 关键样式 */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-col {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-col label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .form-col select,
+        .form-col input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .form-col select:focus,
+        .form-col input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+        
+        .form-col select:hover,
+        .form-col input:hover {
+            border-color: #cbd5e0;
+        }
+        
+        /* 技术配置区块样式 */
+        .tech-section {
+            background: linear-gradient(135deg, rgba(79,172,254,0.05) 0%, rgba(0,242,254,0.05) 100%);
+            border: 2px solid rgba(79,172,254,0.15);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 6px 25px rgba(79,172,254,0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .tech-section:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 35px rgba(79,172,254,0.15);
+            border-color: rgba(79,172,254,0.3);
+        }
+        
+        .tech-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(79,172,254,0.1);
+        }
+        
+        .tech-icon {
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            flex-shrink: 0;
+            box-shadow: 0 6px 20px rgba(79,172,254,0.3);
+        }
+        
+        .tech-title {
+            flex: 1;
+        }
+        
+        .tech-title h4 {
+            font-size: 20px;
+            font-weight: 800;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .tech-title p {
+            font-size: 14px;
+            color: #666;
+            margin: 0;
+        }
+        
+        /* 性能优化 - 硬件加速 */
+        .tech-section,
+        .form-col select,
+        .form-col input {
+            will-change: transform;
+            backface-visibility: hidden;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .tech-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .tech-icon {
+                width: 55px;
+                height: 55px;
+                font-size: 28px;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+        }
+        
+        /* 小屏幕优化 */
+        @media (max-width: 480px) {
+            .form-col label {
+                font-size: 13px;
+            }
+            
+            .form-col select,
+            .form-col input {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            
+            .tech-section {
+                padding: 20px;
+            }
+        }
+
+        /* 进度条通用样式（AI配音专用） */
+        .progress-container {
+            display: none;
+            margin-top: 16px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 26px;
+            background: #e9ecef;
+            border-radius: 13px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #4facfe 0%, #00c9ff 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .voice-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .voice-card {
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .voice-card:hover {
+            border-color: #4facfe;
+            background: #f0f9ff;
+        }
+
+        .voice-card.active {
+            border-color: #4facfe;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .voice-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .slider-group {
+            margin-bottom: 20px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e9ecef;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4facfe;
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            margin-left: 10px;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.9);
+            border: 2px solid #4facfe;
+            color: #4facfe;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            background: #4facfe;
+            color: white;
+        }
+
+        /* Banner头部 */
+        .page-banner {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            padding: 60px 20px;
+            text-align: center;
+            margin: -20px -20px 30px -20px;
+            border-radius: 0;
+            box-shadow: 0 5px 25px rgba(79,172,254,0.3);
+        }
+
+        .banner-content h1 {
+            font-size: 42px;
+            color: white;
+            margin: 0 0 15px 0;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .banner-content p {
+            font-size: 18px;
+            color: rgba(255,255,255,0.95);
+            margin: 0;
+            font-weight: 500;
+        }
+
+        /* TTS引擎选择 */
+        .tts-engine-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .engine-card {
+            position: relative;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .engine-card:hover {
+            border-color: #4facfe;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(79,172,254,0.2);
+        }
+
+        .engine-card.active {
+            border-color: #4facfe;
+            background: linear-gradient(135deg, rgba(79,172,254,0.1) 0%, rgba(0,242,254,0.1) 100%);
+            box-shadow: 0 4px 15px rgba(79,172,254,0.3);
+        }
+
+        .engine-logo {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .engine-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .engine-desc {
+            font-size: 12px;
+            color: #999;
+            line-height: 1.5;
+        }
+
+        .engine-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        /* 音色选择部分 */
+        .voice-section {
+            margin-bottom: 30px;
+        }
+
+        .voice-category-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin: 25px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .voice-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .voice-desc {
+            font-size: 12px;
+            margin-top: 5px;
+            color: #999;
+        }
+
+        /* 克隆语音面板 */
+        .clone-voice-panel {
+            background: linear-gradient(135deg, rgba(79,172,254,0.05) 0%, rgba(0,242,254,0.05) 100%);
+            border: 2px dashed #4facfe;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 15px;
+        }
+
+        .clone-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .clone-icon {
+            font-size: 40px;
+            flex-shrink: 0;
+        }
+
+        .clone-content h5 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 5px 0;
+        }
+
+        .clone-content p {
+            font-size: 13px;
+            color: #666;
+            margin: 0;
+        }
+
+        .clone-upload-area {
+            background: white;
+            border: 2px dashed #4facfe;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .clone-upload-area:hover {
+            border-color: #00f2fe;
+            background: linear-gradient(135deg, rgba(79,172,254,0.05) 0%, rgba(0,242,254,0.05) 100%);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+        }
+
+        .saved-clones {
+            margin-top: 25px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .saved-clones h5 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* 自定义克隆音色卡片 */
+        .voice-card-custom {
+            position: relative;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: 2px solid transparent;
+            color: white;
+        }
+
+        .voice-card-custom:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 12px 30px rgba(245,87,108,0.4);
+        }
+
+        .voice-card-custom .voice-icon.custom-icon {
+            font-size: 42px;
+            animation: pulse 2s infinite;
+        }
+
+        .voice-card-custom .voice-name,
+        .voice-card-custom .voice-desc {
+            color: white;
+        }
+
+        .custom-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255,255,255,0.95);
+            color: #f5576c;
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            animation: badge-pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes badge-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        /* 自定义克隆面板 */
+        .custom-clone-panel {
+            margin-top: 25px;
+            background: white;
+            border: 2px solid #f5576c;
+            border-radius: 20px;
+            overflow: hidden;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            background: linear-gradient(135deg, rgba(240,147,251,0.1) 0%, rgba(245,87,108,0.1) 100%);
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .panel-icon {
+            font-size: 32px;
+        }
+
+        .panel-title h5 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin: 0 0 5px 0;
+        }
+
+        .panel-title p {
+            font-size: 13px;
+            color: #666;
+            margin: 0;
+        }
+
+        .panel-close {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: rgba(245,87,108,0.1);
+            color: #f5576c;
+            font-size: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .panel-close:hover {
+            background: #f5576c;
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        .panel-body {
+            padding: 25px;
+        }
+
+        /* 上传区域 */
+        .upload-zone {
+            border: 3px dashed #d0d0d0;
+            border-radius: 15px;
+            padding: 50px 30px;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(240,147,251,0.03) 0%, rgba(245,87,108,0.03) 100%);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-zone:hover {
+            border-color: #f5576c;
+            background: linear-gradient(135deg, rgba(240,147,251,0.08) 0%, rgba(245,87,108,0.08) 100%);
+            transform: translateY(-2px);
+        }
+
+        .upload-icon-large {
+            font-size: 64px;
+            margin-bottom: 15px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .upload-text {
+            margin-bottom: 20px;
+        }
+
+        .upload-text strong {
+            display: block;
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .upload-text span {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .upload-requirements {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .upload-requirements span {
+            font-size: 12px;
+            color: #666;
+            padding: 6px 12px;
+            background: white;
+            border-radius: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* 已上传文件信息 */
+        .uploaded-info {
+            margin-top: 20px;
+        }
+
+        .file-preview {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(240,147,251,0.1) 0%, rgba(245,87,108,0.1) 100%);
+            border-radius: 15px;
+            border: 2px solid #f5576c;
+        }
+
+        .file-icon {
+            font-size: 48px;
+            flex-shrink: 0;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .file-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .file-remove {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: rgba(255,255,255,0.8);
+            font-size: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-remove:hover {
+            background: #ff4444;
+            transform: scale(1.1);
+        }
+
+        .clone-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn-clone-save,
+        .btn-clone-use {
+            flex: 1;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-clone-save {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-clone-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+        }
+
+        .btn-clone-use {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-clone-use:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(245,87,108,0.4);
+        }
+
+        /* 已保存的克隆音色库 */
+        .saved-library {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 2px dashed #e0e0e0;
+        }
+
+        .library-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .library-header h6 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+        }
+
+        .library-count {
+            font-size: 13px;
+            color: #666;
+            background: #f0f0f0;
+            padding: 4px 12px;
+            border-radius: 12px;
+        }
+
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .saved-voice-card {
+            position: relative;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .saved-voice-card:hover {
+            border-color: #f5576c;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(245,87,108,0.2);
+        }
+
+        .saved-voice-card.active {
+            border-color: #f5576c;
+            background: linear-gradient(135deg, rgba(240,147,251,0.1) 0%, rgba(245,87,108,0.1) 100%);
+        }
+
+        .saved-voice-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .saved-voice-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .saved-voice-date {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .saved-voice-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: rgba(255,68,68,0.1);
+            color: #ff4444;
+            font-size: 14px;
+            border-radius: 50%;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .saved-voice-card:hover .saved-voice-delete {
+            opacity: 1;
+        }
+
+        .saved-voice-delete:hover {
+            background: #ff4444;
+            color: white;
+        }
+
+        .audio-player {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            display: none;
+        }
+
+        /* 现代化参数调整卡片 */
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .param-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            padding: 25px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .param-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(79,172,254,0.2);
+            border-color: #4facfe;
+        }
+
+        .param-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .param-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 26px;
+            flex-shrink: 0;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .speed-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .pitch-icon {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .volume-icon {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .param-info {
+            flex: 1;
+        }
+
+        .param-info h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 5px 0;
+        }
+
+        .param-info p {
+            font-size: 13px;
+            color: #999;
+            margin: 0;
+        }
+
+        .param-value {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .param-slider-wrapper {
+            position: relative;
+        }
+
+        /* 现代化滑块样式 */
+        .modern-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 10px;
+            background: linear-gradient(to right, #e0e0e0 0%, #e0e0e0 100%);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            margin: 15px 0;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modern-slider:hover {
+            background: linear-gradient(to right, #d0d0d0 0%, #d0d0d0 100%);
+        }
+
+        .modern-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(79,172,254,0.4);
+            transition: all 0.3s;
+        }
+
+        .modern-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 5px 20px rgba(79,172,254,0.6);
+        }
+
+        .modern-slider::-webkit-slider-thumb:active {
+            transform: scale(1.1);
+        }
+
+        .modern-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 3px 10px rgba(79,172,254,0.4);
+            transition: all 0.3s;
+        }
+
+        .modern-slider::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 5px 20px rgba(79,172,254,0.6);
+        }
+
+        /* 滑块轨道填充效果 */
+        .modern-slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            border-radius: 10px;
+            background: linear-gradient(to right, #4facfe 0%, #00f2fe 50%, #e0e0e0 50%, #e0e0e0 100%);
+        }
+
+        /* 标记标签 */
+        .slider-marks {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding: 0 5px;
+        }
+
+        .mark-label {
+            font-size: 12px;
+            color: #999;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .mark-center {
+            color: #4facfe;
+            font-weight: 600;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .params-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .param-header {
+                flex-wrap: wrap;
+            }
+            
+            .param-value {
+                width: 100%;
+                text-align: left;
+                margin-top: 10px;
+            }
+        }
+
+        /* 卡片动画 */
+        @keyframes cardPulse {
+            0%, 100% { transform: translateY(-5px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .param-card:active {
+            animation: cardPulse 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="window.location.href='/'">← 返回首页</button>
+    
+    <!-- 快捷导航 -->
+    <div class="floating-actions right">
+        <button onclick="window.location.href='/commentary'" style="padding: 8px 16px; background: rgba(255,255,255,0.9); color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+            🎙️ 原创解说
+        </button>
+        <button onclick="window.location.href='/remix'" style="padding: 8px 16px; background: rgba(255,255,255,0.9); color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+            ✂️ 混剪模式
+        </button>
+        <button onclick="window.location.href='/editor'" style="padding: 8px 16px; background: rgba(255,255,255,0.9); color: #667eea; border: 2px solid #667eea; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+            🎬 编辑器
+        </button>
+        <button onclick="cleanupVoiceover()" style="padding: 8px 16px; background: rgba(255,255,255,0.95); color: #0ea5e9; border: 2px solid #0ea5e9; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+            🧹 清理产物
+        </button>
+    </div>
+
+    <!-- Banner头部 - 添加顶部间距避免被固定导航遮挡 -->
+    <div class="page-banner" style="margin-top: 80px;">
+        <div class="banner-content">
+            <h1>AI智能配音 · 专业版</h1>
+            <p>多音色选择 · 参数精调 · 秒级生成</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="layout-two-cols">
+            <div class="sections">
+        <!-- TTS引擎选择 -->
+        <div class="section">
+            <div class="section-title">1️⃣ 选择TTS引擎</div>
+            <div class="tts-engine-grid">
+                <div class="engine-card active" onclick="selectEngine('edge-tts', this)">
+                    <div class="engine-logo">🎙️</div>
+                    <div class="engine-name">Edge-TTS</div>
+                    <div class="engine-desc">微软Azure · 免费 · 高质量</div>
+                    <div class="engine-badge">推荐</div>
+                </div>
+                <div class="engine-card" onclick="selectEngine('azure-tts', this)">
+                    <div class="engine-logo">☁️</div>
+                    <div class="engine-name">Azure TTS</div>
+                    <div class="engine-desc">微软Azure · 付费 · 专业级</div>
+                </div>
+                <div class="engine-card" onclick="selectEngine('voice-clone', this)">
+                    <div class="engine-logo">🎭</div>
+                    <div class="engine-name">本地克隆语音</div>
+                    <div class="engine-desc">Voice Clone · 本地部署 · 克隆音色</div>
+                </div>
+                <div class="engine-card" onclick="selectEngine('voice-pro', this)">
+                    <div class="engine-logo">🧠</div>
+                    <div class="engine-name">Voice-Pro 外部引擎</div>
+                    <div class="engine-desc">独立 WebUI · 高级本地多语种配音</div>
+                </div>
+                <div class="engine-card" onclick="selectEngine('gtts', this)">
+                    <div class="engine-logo">🌐</div>
+                    <div class="engine-name">Google TTS</div>
+                    <div class="engine-desc">免费 · 多语言支持</div>
+                </div>
+            </div>
+            <div style="margin-top: 10px; text-align: right;">
+                <button class="btn btn-secondary" type="button" onclick="applyShortVideoVoicePreset()" style="font-size: 13px; padding: 4px 10px;">
+                    🎧 套用短视频配音推荐参数
+                </button>
+            </div>
+        </div>
+
+        <!-- 选择音色 -->
+        <div class="section">
+            <div class="section-title">2️⃣ 选择AI音色</div>
+            
+            <!-- Edge-TTS音色库 -->
+            <div id="edgeTTSVoices" class="voice-section">
+                <h4 class="voice-category-title">🎵 中文音色</h4>
+                <div class="voice-grid">
+                    <div class="voice-card active" onclick="selectVoice('zh-CN-XiaoxiaoNeural', this)">
+                        <div class="voice-icon">👩</div>
+                        <div class="voice-name">晓晓</div>
+                        <div class="voice-desc">温柔女声 · 客服推荐</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('zh-CN-YunxiNeural', this)">
+                        <div class="voice-icon">👨</div>
+                        <div class="voice-name">云希</div>
+                        <div class="voice-desc">成熟男声 · 新闻播报</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('zh-CN-YunyangNeural', this)">
+                        <div class="voice-icon">🧑</div>
+                        <div class="voice-name">云扬</div>
+                        <div class="voice-desc">年轻男声 · 活力</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('zh-CN-XiaoyiNeural', this)">
+                        <div class="voice-icon">👧</div>
+                        <div class="voice-name">晓伊</div>
+                        <div class="voice-desc">甜美女声 · 亲和力</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('zh-CN-YunjianNeural', this)">
+                        <div class="voice-icon">🧔</div>
+                        <div class="voice-name">云健</div>
+                        <div class="voice-desc">浑厚男声 · 专业</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('zh-CN-XiaochenNeural', this)">
+                        <div class="voice-icon">👦</div>
+                        <div class="voice-name">晓辰</div>
+                        <div class="voice-desc">少年男声 · 青春</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('zh-CN-XiaoshuangNeural', this)">
+                        <div class="voice-icon">👧</div>
+                        <div class="voice-name">晓双</div>
+                        <div class="voice-desc">少女音 · 可爱</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('zh-CN-YunfengNeural', this)">
+                        <div class="voice-icon">🎤</div>
+                        <div class="voice-name">云枫</div>
+                        <div class="voice-desc">解说音 · 磁性</div>
+                    </div>
+                </div>
+
+                <h4 class="voice-category-title">🌏 英文音色</h4>
+                <div class="voice-grid">
+                    <div class="voice-card" onclick="selectVoice('en-US-JennyNeural', this)">
+                        <div class="voice-icon">👩</div>
+                        <div class="voice-name">Jenny</div>
+                        <div class="voice-desc">美式女声 · 标准</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('en-US-GuyNeural', this)">
+                        <div class="voice-icon">👨</div>
+                        <div class="voice-name">Guy</div>
+                        <div class="voice-desc">美式男声 · 新闻</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('en-GB-SoniaNeural', this)">
+                        <div class="voice-icon">👩</div>
+                        <div class="voice-name">Sonia</div>
+                        <div class="voice-desc">英式女声 · 优雅</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('en-GB-RyanNeural', this)">
+                        <div class="voice-icon">👨</div>
+                        <div class="voice-name">Ryan</div>
+                        <div class="voice-desc">英式男声 · 绅士</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 克隆语音部分 -->
+            <div id="voiceCloneSection" class="voice-section" style="display: none;">
+                <h4 class="voice-category-title">🎭 Voice Clone 音色库（11种内置 + 自定义）</h4>
+                <div class="voice-grid">
+                    <!-- 11个内置音色 -->
+                    <div class="voice-card active" onclick="selectVoice('zh', this)">
+                        <div class="voice-icon">🇨🇳</div>
+                        <div class="voice-name">中文</div>
+                        <div class="voice-desc">Chinese · 标准中文</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('en-us', this)">
+                        <div class="voice-icon">🇺🇸</div>
+                        <div class="voice-name">英语-美国</div>
+                        <div class="voice-desc">US English · 标准美音</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('en-br', this)">
+                        <div class="voice-icon">🇬🇧</div>
+                        <div class="voice-name">英语-英国</div>
+                        <div class="voice-desc">British · 标准英音</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('en-au', this)">
+                        <div class="voice-icon">🇦🇺</div>
+                        <div class="voice-name">英语-澳洲</div>
+                        <div class="voice-desc">Australian · 澳洲口音</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('en-india', this)">
+                        <div class="voice-icon">🇮🇳</div>
+                        <div class="voice-name">英语-印度</div>
+                        <div class="voice-desc">Indian · 印度口音</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('en-default', this)">
+                        <div class="voice-icon">🌐</div>
+                        <div class="voice-name">英语-默认</div>
+                        <div class="voice-desc">Default · 通用英语</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('en-newest', this)">
+                        <div class="voice-icon">✨</div>
+                        <div class="voice-name">英语-最新</div>
+                        <div class="voice-desc">Newest · 最新模型</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('es', this)">
+                        <div class="voice-icon">🇪🇸</div>
+                        <div class="voice-name">西班牙语</div>
+                        <div class="voice-desc">Spanish · 西语</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('fr', this)">
+                        <div class="voice-icon">🇫🇷</div>
+                        <div class="voice-name">法语</div>
+                        <div class="voice-desc">French · 法语</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('jp', this)">
+                        <div class="voice-icon">🇯🇵</div>
+                        <div class="voice-name">日语</div>
+                        <div class="voice-desc">Japanese · 日语</div>
+                    </div>
+                    <div class="voice-card" onclick="selectVoice('kr', this)">
+                        <div class="voice-icon">🇰🇷</div>
+                        <div class="voice-name">韩语</div>
+                        <div class="voice-desc">Korean · 韩语</div>
+                    </div>
+
+                    <!-- 自定义克隆音色卡片 -->
+                    <div class="voice-card voice-card-custom" onclick="toggleCustomClone(this)">
+                        <div class="voice-icon custom-icon">🎨</div>
+                        <div class="voice-name">自定义克隆</div>
+                        <div class="voice-desc">上传音频 · 克隆任意音色</div>
+                        <div class="custom-badge">NEW</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; text-align: right;">
+                    <button class="btn btn-secondary" type="button" onclick="testVoiceCloneEngine()" style="font-size: 13px; padding: 4px 10px;">
+                        ⚙️ 测试本地引擎配置
+                    </button>
+                </div>
+
+                <!-- 自定义克隆面板（点击后展开） -->
+                <div id="customClonePanel" class="custom-clone-panel" style="display: none;">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <span class="panel-icon">🎨</span>
+                            <div>
+                                <h5>自定义克隆音色</h5>
+                                <p>上传3-10秒清晰人声，AI将学习并克隆该音色</p>
+                            </div>
+                        </div>
+                        <button class="panel-close" onclick="closeCustomClone()">✕</button>
+                    </div>
+
+                    <div class="panel-body">
+                        <!-- 上传区域 -->
+                        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('cloneAudioFile').click()">
+                            <div class="upload-icon-large">📁</div>
+                            <div class="upload-text">
+                                <strong>点击上传参考音频</strong>
+                                <span>或拖拽文件到此处</span>
+                            </div>
+                            <div class="upload-requirements">
+                                <span>✓ 时长：3-10秒</span>
+                                <span>✓ 格式：MP3, WAV</span>
+                                <span>✓ 质量：清晰人声</span>
+                            </div>
+                            <input type="file" id="cloneAudioFile" accept="audio/*" style="display: none;" onchange="handleCloneUpload(this)">
+                        </div>
+
+                        <!-- 已上传文件信息 -->
+                        <div id="uploadedFileInfo" class="uploaded-info" style="display: none;">
+                            <div class="file-preview">
+                                <div class="file-icon">🎵</div>
+                                <div class="file-details">
+                                    <div class="file-name" id="fileName"></div>
+                                    <div class="file-meta">
+                                        <span id="fileSize"></span>
+                                        <span id="fileDuration"></span>
+                                    </div>
+                                </div>
+                                <button class="file-remove" onclick="removeUploadedFile()">🗑️</button>
+                            </div>
+                            <div class="clone-actions">
+                                <button class="btn-clone-save" onclick="saveClonedVoice()">
+                                    💾 保存为克隆音色
+                                </button>
+                                <button class="btn-clone-use" onclick="useClonedVoice()">
+                                    ✓ 直接使用
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 已保存的克隆音色库 -->
+                        <div id="savedClonesLibrary" class="saved-library" style="display: none;">
+                            <div class="library-header">
+                                <h6>💾 我的克隆音色库</h6>
+                                <span class="library-count" id="cloneCount">0个</span>
+                            </div>
+                            <div class="library-grid" id="savedClonesList">
+                                <!-- 动态加载已保存的克隆音色 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" onclick="previewVoice()" style="margin-top: 15px;">
+                👂 试听选中音色
+            </button>
+        </div>
+
+        <!-- 输入文本 -->
+        <div class="section">
+            <div class="section-title">3️⃣ 输入配音文本</div>
+            <div class="form-group">
+                <textarea id="voiceText" placeholder="输入要转换成语音的文字内容...">大家好，欢迎来到我的频道。今天我们要分享一些非常有趣的内容，希望大家喜欢！</textarea>
+            </div>
+            <div style="color: #666; font-size: 14px;">
+                字数统计: <span id="charCount">0</span> 字
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
+                <button type="button" class="btn btn-secondary" style="padding: 6px 14px; font-size: 13px; border-radius: 6px;" onclick="openVoiceoverHistory()">
+                    📚 配音历史记录
+                </button>
+                <button type="button" class="btn btn-secondary" style="padding: 6px 14px; font-size: 13px; border-radius: 6px;" onclick="showRecentVoiceovers()">
+                    ⏱️ 最近3条配音
+                </button>
+                <button type="button" class="btn btn-outline-secondary" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; display: none;" id="clearVoiceoverSelection" onclick="clearVoiceoverSelection()">
+                    ❌ 清除复用
+                </button>
+                <span style="font-size: 12px; color: #666;">查看和复用历史配音的文本、音色和参数配置</span>
+            </div>
+            <div id="voiceoverSelectionInfo" style="display: none; margin-top: 10px; padding: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; font-size: 13px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <span style="color: #0369a1; font-weight: 600;">✅ 已复用配音记录：</span>
+                        <span id="voiceoverSelectionText" style="color: #475569;"></span>
+                    </div>
+                </div>
+            </div>
+            <div id="voiceoverSelectedMaterialInfo" style="margin-top: 8px; display:none; font-size: 12px; color: #374151; background:#f9fafb; border-radius:6px; border:1px solid #e5e7eb; padding:8px 10px;"></div>
+            <div style="margin-top: 16px; padding-top: 10px; border-top: 1px dashed #e5e7eb;">
+                <div style="font-size: 13px; color: #555; margin-bottom: 6px;">
+                    批量配音（可选）：在下方文本框中每行输入一段文案，将使用当前选中的音色和参数一次性生成多段配音。
+                </div>
+                <div class="form-group" style="margin-top: 6px;">
+                    <textarea id="batchVoiceText" placeholder="每行一段文案，例如：&#10;片头文案...&#10;主要内容第一段...&#10;结尾感谢语..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 调整参数 - 现代化设计 -->
+        <div class="section">
+            <div class="section-title">4️⃣ 调整语音参数</div>
+            
+            <div class="params-grid">
+                <!-- 语速调整卡片 -->
+                <div class="param-card">
+                    <div class="param-header">
+                        <div class="param-icon speed-icon">
+                            <i class="fa fa-tachometer"></i>
+                        </div>
+                        <div class="param-info">
+                            <h4>语速</h4>
+                            <p>调整语音播放速度</p>
+                        </div>
+                        <div class="param-value" id="rateValue">+0%</div>
+                    </div>
+                    <div class="param-slider-wrapper">
+                        <input type="range" class="modern-slider" id="rate" min="-50" max="100" value="0" oninput="updateRate(this.value)">
+                        <div class="slider-marks">
+                            <span class="mark-label">🐌 慢速</span>
+                            <span class="mark-label mark-center">⚡ 正常</span>
+                            <span class="mark-label">🚀 快速</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 音调调整卡片 -->
+                <div class="param-card">
+                    <div class="param-header">
+                        <div class="param-icon pitch-icon">
+                            <i class="fa fa-music"></i>
+                        </div>
+                        <div class="param-info">
+                            <h4>音调</h4>
+                            <p>调整语音音高</p>
+                        </div>
+                        <div class="param-value" id="pitchValue">+0Hz</div>
+                    </div>
+                    <div class="param-slider-wrapper">
+                        <input type="range" class="modern-slider" id="pitch" min="-50" max="50" value="0" oninput="updatePitch(this.value)">
+                        <div class="slider-marks">
+                            <span class="mark-label">🎵 低音</span>
+                            <span class="mark-label mark-center">🎶 正常</span>
+                            <span class="mark-label">🎸 高音</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 音量调整卡片 -->
+                <div class="param-card">
+                    <div class="param-header">
+                        <div class="param-icon volume-icon">
+                            <i class="fa fa-volume-up"></i>
+                        </div>
+                        <div class="param-info">
+                            <h4>音量</h4>
+                            <p>调整语音音量大小</p>
+                        </div>
+                        <div class="param-value" id="volumeValue">+0%</div>
+                    </div>
+                    <div class="param-slider-wrapper">
+                        <input type="range" class="modern-slider" id="volume" min="-100" max="100" value="0" oninput="updateVolume(this.value)">
+                        <div class="slider-marks">
+                            <span class="mark-label">🔇 小声</span>
+                            <span class="mark-label mark-center">🔊 正常</span>
+                            <span class="mark-label">📢 大声</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI语音技术高级配置 -->
+        <div class="section">
+            <div class="section-title" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 24px; font-weight: 700; margin-bottom: 25px;">
+                🧬 AI语音技术高级配置
+            </div>
+            <p style="color: #999; font-size: 14px; margin: -15px 0 30px 0;">专业级语音技术参数配置，可选</p>
+            
+            <!-- TTS声学模型配置 -->
+            <div style="background: linear-gradient(135deg, rgba(102,126,234,0.05) 0%, rgba(118,75,162,0.05) 100%); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 2px solid rgba(102,126,234,0.1); box-shadow: 0 8px 32px rgba(102,126,234,0.08);">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid rgba(102,126,234,0.1);">
+                    <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 15px rgba(102,126,234,0.3);">
+                        🎼
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 20px; color: #333; font-weight: 700;">TTS声学模型配置</h3>
+                        <p style="margin: 5px 0 0 0; color: #999; font-size: 13px;">端到端神经网络语音合成模型</p>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                        <label style="display: flex; align-items: center; gap: 8px; color: #667eea; font-weight: 600; font-size: 14px; margin-bottom: 12px;">
+                            <span style="font-size: 20px;">🏗️</span> 声学模型架构
+                        </label>
+                        <select id="acousticModel" style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; outline: none; transition: all 0.3s; background: white;">
+                            <option value="transformer" selected>✨ Transformer TTS（推荐）</option>
+                            <option value="tacotron2">🎯 Tacotron 2</option>
+                            <option value="fastspeech2">⚡ FastSpeech 2</option>
+                            <option value="glow-tts">🌊 Glow-TTS</option>
+                            <option value="vits">🚀 VITS（端到端）</option>
+                        </select>
+                        <p style="margin: 10px 0 0 0; color: #999; font-size: 12px;">选择神经网络架构</p>
+                    </div>
+                    <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                        <label style="display: flex; align-items: center; gap: 8px; color: #667eea; font-weight: 600; font-size: 14px; margin-bottom: 12px;">
+                            <span style="font-size: 20px;">🎯</span> 模型精度
+                        </label>
+                        <select id="modelPrecision" style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; outline: none; transition: all 0.3s; background: white;">
+                            <option value="high">💎 高精度（FP32）</option>
+                            <option value="medium" selected>⚖️ 标准（FP16）</option>
+                            <option value="quantized">📦 量化（INT8）</option>
+                            <option value="distilled">🎈 蒸馏（轻量）</option>
+                        </select>
+                        <p style="margin: 10px 0 0 0; color: #999; font-size: 12px;">平衡质量与速度</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 声码器配置 -->
+            <div style="background: linear-gradient(135deg, rgba(79,172,254,0.05) 0%, rgba(0,242,254,0.05) 100%); border-radius: 20px; padding: 30px; margin-bottom: 25px; border: 2px solid rgba(79,172,254,0.1); box-shadow: 0 8px 32px rgba(79,172,254,0.08);">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid rgba(79,172,254,0.1);">
+                    <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 15px rgba(79,172,254,0.3);">
+                        🎵
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 20px; color: #333; font-weight: 700;">声码器(Vocoder)配置</h3>
+                        <p style="margin: 5px 0 0 0; color: #999; font-size: 13px;">将声学特征转换为语音波形</p>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px;">
+                    <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                        <label style="display: flex; align-items: center; gap: 8px; color: #4facfe; font-weight: 600; font-size: 14px; margin-bottom: 12px;">
+                            <span style="font-size: 20px;">🔊</span> 声码器类型
+                        </label>
+                        <select id="vocoderType" style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px;">
+                            <option value="hifi-gan" selected>🎯 HiFi-GAN（高保真）</option>
+                            <option value="wavenet">💎 WaveNet（高质量）</option>
+                            <option value="waveglow">🌊 WaveGlow（并行）</option>
+                            <option value="diffwave">✨ DiffWave（扩散）</option>
+                            <option value="melgan">⚡ MelGAN（快速）</option>
+                        </select>
+                    </div>
+                    <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                        <label style="display: flex; align-items: center; gap: 8px; color: #4facfe; font-weight: 600; font-size: 14px; margin-bottom: 12px;">
+                            <span style="font-size: 20px;">⚡</span> 生成策略
+                        </label>
+                        <select id="vocoderStrategy" style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px;">
+                            <option value="parallel" selected>🚀 并行生成（快速）</option>
+                            <option value="autoregressive">🎯 自回归（高质）</option>
+                            <option value="flow-based">⚖️ 基于流（平衡）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                    <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                        <label style="display: flex; align-items: center; gap: 8px; color: #4facfe; font-weight: 600; font-size: 14px; margin-bottom: 12px;">
+                            <span style="font-size: 20px;">🎚️</span> 采样率
+                        </label>
+                        <select id="sampleRate" style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px;">
+                            <option value="16000">📻 16kHz（标准）</option>
+                            <option value="22050" selected>✨ 22.05kHz（推荐）</option>
+                            <option value="24000">💿 24kHz（高质）</option>
+                            <option value="44100">🎵 44.1kHz（CD质量）</option>
+                            <option value="48000">🎬 48kHz（专业级）</option>
+                        </select>
+                    </div>
+                    <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                        <label style="display: flex; align-items: center; gap: 8px; color: #4facfe; font-weight: 600; font-size: 14px; margin-bottom: 12px;">
+                            <span style="font-size: 20px;">🔢</span> 比特深度
+                        </label>
+                        <select id="bitDepth" style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px;">
+                            <option value="16">📦 16-bit（标准）</option>
+                            <option value="24" selected>💎 24-bit（高保真）</option>
+                            <option value="32">🏆 32-bit（专业）</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 韵律预测配置 - 音乐波形风格 -->
+            <div style="position: relative; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 25px; padding: 35px; margin-bottom: 25px; overflow: hidden; box-shadow: 0 15px 35px rgba(102,126,234,0.2);">
+                <!-- 装饰性波形背景 -->
+                <div style="position: absolute; top: 0; right: 0; width: 200px; height: 200px; background: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><path d=%22M0,50 Q25,20 50,50 T100,50%22 fill=%22none%22 stroke=%22rgba(255,255,255,0.1)%22 stroke-width=%222%22/></svg>'); opacity: 0.3;"></div>
+                
+                <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 30px; position: relative; z-index: 1;">
+                    <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 35px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.3);">
+                        🎭
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 22px; color: white; font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,0.2);">韵律预测配置</h3>
+                        <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">基频、时长、能量的智能预测</p>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(255,255,255,0.95); border-radius: 20px; padding: 25px; position: relative; z-index: 1;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px;">
+                        <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8eaff 100%); padding: 22px; border-radius: 15px; border: 2px solid #e0e3ff; transition: all 0.3s;">
+                            <label style="display: flex; align-items: center; gap: 10px; color: #667eea; font-weight: 700; font-size: 15px; margin-bottom: 15px;">
+                                <span style="font-size: 24px; filter: drop-shadow(0 2px 4px rgba(102,126,234,0.3));">📈</span> 
+                                <span>基频(F0)预测</span>
+                            </label>
+                            <select id="f0Prediction" style="width: 100%; padding: 14px 16px; border: 2px solid #d0d4ff; border-radius: 12px; font-size: 14px; font-weight: 600; color: #667eea; background: white; cursor: pointer; transition: all 0.3s;">
+                                <option value="neural" selected>🧠 神经网络预测</option>
+                                <option value="lstm">🔄 LSTM预测</option>
+                                <option value="transformer">⚡ Transformer预测</option>
+                                <option value="rule-based">📋 基于规则</option>
+                            </select>
+                            <div style="margin-top: 10px; padding: 8px 12px; background: rgba(102,126,234,0.1); border-radius: 8px; font-size: 12px; color: #667eea;">
+                                <strong>提示：</strong>控制语音的音高变化
+                            </div>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #fff8f8 0%, #ffe8ea 100%); padding: 22px; border-radius: 15px; border: 2px solid #ffe0e3; transition: all 0.3s;">
+                            <label style="display: flex; align-items: center; gap: 10px; color: #764ba2; font-weight: 700; font-size: 15px; margin-bottom: 15px;">
+                                <span style="font-size: 24px; filter: drop-shadow(0 2px 4px rgba(118,75,162,0.3));">⏱️</span> 
+                                <span>时长预测模型</span>
+                            </label>
+                            <select id="durationModel" style="width: 100%; padding: 14px 16px; border: 2px solid #ffd0d4; border-radius: 12px; font-size: 14px; font-weight: 600; color: #764ba2; background: white; cursor: pointer; transition: all 0.3s;">
+                                <option value="variance-adaptor" selected>🎯 方差适配器</option>
+                                <option value="duration-predictor">⏳ 时长预测器</option>
+                                <option value="attention-based">👁️ 基于注意力</option>
+                            </select>
+                            <div style="margin-top: 10px; padding: 8px 12px; background: rgba(118,75,162,0.1); border-radius: 8px; font-size: 12px; color: #764ba2;">
+                                <strong>提示：</strong>控制每个音素的时长
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                        <div style="background: linear-gradient(135deg, #f0fff4 0%, #e0ffea 100%); padding: 22px; border-radius: 15px; border: 2px solid #d0ffe3; transition: all 0.3s;">
+                            <label style="display: flex; align-items: center; gap: 10px; color: #10b981; font-weight: 700; font-size: 15px; margin-bottom: 15px;">
+                                <span style="font-size: 24px; filter: drop-shadow(0 2px 4px rgba(16,185,129,0.3));">💫</span> 
+                                <span>能量预测</span>
+                            </label>
+                            <select id="energyPrediction" style="width: 100%; padding: 14px 16px; border: 2px solid #b0ffd4; border-radius: 12px; font-size: 14px; font-weight: 600; color: #10b981; background: white; cursor: pointer; transition: all 0.3s;">
+                                <option value="auto" selected>✨ 自动预测</option>
+                                <option value="frame-level">🎞️ 帧级预测</option>
+                                <option value="phoneme-level">🔤 音素级预测</option>
+                            </select>
+                            <div style="margin-top: 10px; padding: 8px 12px; background: rgba(16,185,129,0.1); border-radius: 8px; font-size: 12px; color: #10b981;">
+                                <strong>提示：</strong>控制语音的响度
+                            </div>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #fffbf0 0%, #ffeae0 100%); padding: 22px; border-radius: 15px; border: 2px solid #ffddd0; transition: all 0.3s;">
+                            <label style="display: flex; align-items: center; gap: 10px; color: #f59e0b; font-weight: 700; font-size: 15px; margin-bottom: 15px;">
+                                <span style="font-size: 24px; filter: drop-shadow(0 2px 4px rgba(245,158,11,0.3));">🎼</span> 
+                                <span>韵律风格</span>
+                            </label>
+                            <select id="prosodyStyle" style="width: 100%; padding: 14px 16px; border: 2px solid #ffcdb0; border-radius: 12px; font-size: 14px; font-weight: 600; color: #f59e0b; background: white; cursor: pointer; transition: all 0.3s;">
+                                <option value="natural" selected>🌿 自然风格</option>
+                                <option value="expressive">🎨 表现力强</option>
+                                <option value="neutral">😐 中性平稳</option>
+                                <option value="dynamic">⚡ 动态变化</option>
+                            </select>
+                            <div style="margin-top: 10px; padding: 8px 12px; background: rgba(245,158,11,0.1); border-radius: 8px; font-size: 12px; color: #f59e0b;">
+                                <strong>提示：</strong>整体韵律表现风格
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 情感TTS配置 - 表情符号彩虹风格 -->
+            <div style="background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 25%, #ffecd2 50%, #fcb69f 75%, #ff9a9e 100%); border-radius: 30px; padding: 40px; margin-bottom: 25px; box-shadow: 0 20px 60px rgba(255,154,158,0.3); position: relative; overflow: hidden;">
+                <!-- 装饰性气泡 -->
+                <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%); border-radius: 50%;"></div>
+                <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%); border-radius: 50%;"></div>
+                
+                <div style="text-align: center; margin-bottom: 35px; position: relative; z-index: 1;">
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 90px; height: 90px; background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.9) 100%); border-radius: 50%; margin-bottom: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+                        <span style="font-size: 50px; animation: emotionPulse 2s ease-in-out infinite;">😊</span>
+                    </div>
+                    <h3 style="margin: 0; font-size: 26px; color: #fff; font-weight: 900; text-shadow: 0 2px 15px rgba(0,0,0,0.2); letter-spacing: 1px;">情感TTS配置</h3>
+                    <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.95); font-size: 15px; font-weight: 600;">为语音注入情感的灵魂</p>
+                </div>
+                
+                <div style="background: rgba(255,255,255,0.98); border-radius: 25px; padding: 30px; backdrop-filter: blur(10px); position: relative; z-index: 1;">
+                    <!-- 情感类型选择 - 大卡片风格 -->
+                    <div style="margin-bottom: 25px;">
+                        <label style="display: block; font-size: 18px; font-weight: 800; color: #ff6b9d; margin-bottom: 20px; text-align: center;">
+                            🎭 选择情感类型
+                        </label>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                            <div onclick="selectEmotion('neutral', this)" class="emotion-card" style="background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); padding: 20px; border-radius: 15px; text-align: center; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;">
+                                <div style="font-size: 40px; margin-bottom: 8px;">😐</div>
+                                <div style="font-size: 13px; font-weight: 700; color: #666;">中性</div>
+                            </div>
+                            <div onclick="selectEmotion('happy', this)" class="emotion-card" style="background: linear-gradient(135deg, #fff9e6 0%, #ffe6b3 100%); padding: 20px; border-radius: 15px; text-align: center; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;">
+                                <div style="font-size: 40px; margin-bottom: 8px;">😄</div>
+                                <div style="font-size: 13px; font-weight: 700; color: #ff9800;">开心</div>
+                            </div>
+                            <div onclick="selectEmotion('sad', this)" class="emotion-card" style="background: linear-gradient(135deg, #e6f3ff 0%, #b3d9ff 100%); padding: 20px; border-radius: 15px; text-align: center; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;">
+                                <div style="font-size: 40px; margin-bottom: 8px;">😢</div>
+                                <div style="font-size: 13px; font-weight: 700; color: #2196f3;">悲伤</div>
+                            </div>
+                            <div onclick="selectEmotion('angry', this)" class="emotion-card" style="background: linear-gradient(135deg, #ffe6e6 0%, #ffb3b3 100%); padding: 20px; border-radius: 15px; text-align: center; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;">
+                                <div style="font-size: 40px; margin-bottom: 8px;">😠</div>
+                                <div style="font-size: 13px; font-weight: 700; color: #f44336;">愤怒</div>
+                            </div>
+                            <div onclick="selectEmotion('excited', this)" class="emotion-card" style="background: linear-gradient(135deg, #ffe6ff 0%, #ffb3ff 100%); padding: 20px; border-radius: 15px; text-align: center; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;">
+                                <div style="font-size: 40px; margin-bottom: 8px;">🤩</div>
+                                <div style="font-size: 13px; font-weight: 700; color: #e91e63;">兴奋</div>
+                            </div>
+                            <div onclick="selectEmotion('calm', this)" class="emotion-card" style="background: linear-gradient(135deg, #e6ffe6 0%, #b3ffb3 100%); padding: 20px; border-radius: 15px; text-align: center; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;">
+                                <div style="font-size: 40px; margin-bottom: 8px;">😌</div>
+                                <div style="font-size: 13px; font-weight: 700; color: #4caf50;">平静</div>
+                            </div>
+                            <div onclick="selectEmotion('fearful', this)" class="emotion-card" style="background: linear-gradient(135deg, #f0e6ff 0%, #d9b3ff 100%); padding: 20px; border-radius: 15px; text-align: center; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;">
+                                <div style="font-size: 40px; margin-bottom: 8px;">😨</div>
+                                <div style="font-size: 13px; font-weight: 700; color: #9c27b0;">恐惧</div>
+                            </div>
+                            <div onclick="selectEmotion('love', this)" class="emotion-card" style="background: linear-gradient(135deg, #ffe6f0 0%, #ffb3d9 100%); padding: 20px; border-radius: 15px; text-align: center; cursor: pointer; transition: all 0.3s; border: 3px solid transparent;">
+                                <div style="font-size: 40px; margin-bottom: 8px;">🥰</div>
+                                <div style="font-size: 13px; font-weight: 700; color: #ff4081;">温柔</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="emotionType" value="neutral">
+                    </div>
+
+                    <!-- 情感参数调节 -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                        <div style="background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%); padding: 20px; border-radius: 18px; border: 2px solid #ffd5d5;">
+                            <label style="display: flex; align-items: center; gap: 8px; color: #ff6b9d; font-weight: 800; font-size: 14px; margin-bottom: 12px;">
+                                <span style="font-size: 22px;">📊</span> 情感强度
+                            </label>
+                            <select id="emotionIntensity" style="width: 100%; padding: 12px; border: 2px solid #ffb3c6; border-radius: 12px; font-size: 13px; font-weight: 600; color: #ff6b9d; background: white;">
+                                <option value="subtle">💧 微弱（10-30%）</option>
+                                <option value="moderate" selected>💦 适中（30-60%）</option>
+                                <option value="strong">💨 强烈（60-90%）</option>
+                                <option value="extreme">💥 极强（90-100%）</option>
+                            </select>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #f5f5ff 0%, #e5e5ff 100%); padding: 20px; border-radius: 18px; border: 2px solid #d5d5ff;">
+                            <label style="display: flex; align-items: center; gap: 8px; color: #7c4dff; font-weight: 800; font-size: 14px; margin-bottom: 12px;">
+                                <span style="font-size: 22px;">🎨</span> 建模方式
+                            </label>
+                            <select id="emotionModeling" style="width: 100%; padding: 12px; border: 2px solid #b39ddb; border-radius: 12px; font-size: 13px; font-weight: 600; color: #7c4dff; background: white;">
+                                <option value="embedding" selected>🧬 情感嵌入</option>
+                                <option value="classifier">🎯 情感分类器</option>
+                                <option value="vae">🔮 变分自编码器</option>
+                                <option value="style-token">🎭 风格令牌</option>
+                            </select>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #f5fff5 0%, #e5ffe5 100%); padding: 20px; border-radius: 18px; border: 2px solid #d5ffd5;">
+                            <label style="display: flex; align-items: center; gap: 8px; color: #00c853; font-weight: 800; font-size: 14px; margin-bottom: 12px;">
+                                <span style="font-size: 22px;">🔄</span> 迁移强度
+                            </label>
+                            <select id="emotionTransfer" style="width: 100%; padding: 12px; border: 2px solid #a5d6a7; border-radius: 12px; font-size: 13px; font-weight: 600; color: #00c853; background: white;">
+                                <option value="conservative">🐢 保守（贴近原文）</option>
+                                <option value="moderate" selected>🚶 适中</option>
+                                <option value="aggressive">🚀 激进（情感明显）</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+                let selectedEmotionCard = null;
+                function selectEmotion(emotion, card) {
+                    // 移除之前选中的样式
+                    if (selectedEmotionCard) {
+                        selectedEmotionCard.style.border = '3px solid transparent';
+                        selectedEmotionCard.style.transform = 'scale(1)';
+                    }
+                    // 添加选中样式
+                    card.style.border = '3px solid #ff6b9d';
+                    card.style.transform = 'scale(1.05)';
+                    selectedEmotionCard = card;
+                    // 更新隐藏的input值
+                    document.getElementById('emotionType').value = emotion;
+                }
+                // 默认选中中性
+                document.addEventListener('DOMContentLoaded', function() {
+                    const firstCard = document.querySelector('.emotion-card');
+                    if (firstCard) selectEmotion('neutral', firstCard);
+                });
+            </script>
+
+            <!-- 说话人嵌入配置 -->
+            <div class="tech-section">
+                <div class="tech-header">
+                    <div class="tech-icon">👤</div>
+                    <div class="tech-title">
+                        <h4>说话人嵌入(Speaker Embedding)配置</h4>
+                        <p>多说话人语音合成和语音克隆</p>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>🧬 嵌入提取模型</label>
+                        <select id="speakerEmbeddingModel">
+                            <option value="ecapa-tdnn" selected>ECAPA-TDNN（推荐）</option>
+                            <option value="ge2e">GE2E（端到端）</option>
+                            <option value="d-vector">d-vector（LSTM）</option>
+                            <option value="x-vector">x-vector（时延）</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>📏 嵌入维度</label>
+                        <select id="embeddingDim">
+                            <option value="128">128维（轻量）</option>
+                            <option value="256" selected>256维（标准）</option>
+                            <option value="512">512维（高表达）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>🎯 相似度度量</label>
+                        <select id="similarityMetric">
+                            <option value="cosine" selected>余弦相似度</option>
+                            <option value="euclidean">欧氏距离</option>
+                            <option value="combined">余弦+欧氏组合</option>
+                            <option value="learned">学习度量</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>🔄 嵌入融合策略</label>
+                        <select id="embeddingFusion">
+                            <option value="concat" selected>特征拼接</option>
+                            <option value="add">特征相加</option>
+                            <option value="attention">注意力融合</option>
+                            <option value="gate">门控融合</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 音频特征提取配置 -->
+            <div class="tech-section">
+                <div class="tech-header">
+                    <div class="tech-icon">🔊</div>
+                    <div class="tech-title">
+                        <h4>音频特征提取配置</h4>
+                        <p>MFCC、梅尔频谱等声学特征</p>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>📊 特征类型</label>
+                        <select id="audioFeatureType">
+                            <option value="mel-spectrogram" selected>梅尔频谱图</option>
+                            <option value="mfcc">MFCC特征</option>
+                            <option value="log-mel">对数梅尔频谱</option>
+                            <option value="linear-spectrogram">线性频谱图</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>🎚️ 梅尔滤波器组数</label>
+                        <select id="melBins">
+                            <option value="40">40（快速）</option>
+                            <option value="80" selected>80（标准）</option>
+                            <option value="128">128（高分辨率）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>🔢 FFT点数</label>
+                        <select id="fftSize">
+                            <option value="512">512点</option>
+                            <option value="1024" selected>1024点</option>
+                            <option value="2048">2048点</option>
+                            <option value="4096">4096点</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>⏩ 帧移(Hop Length)</label>
+                        <select id="hopLength">
+                            <option value="128">128（高时间分辨率）</option>
+                            <option value="256" selected>256（标准）</option>
+                            <option value="512">512（低时间分辨率）</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据增强配置（针对语音克隆） -->
+            <div class="tech-section">
+                <div class="tech-header">
+                    <div class="tech-icon">🔄</div>
+                    <div class="tech-title">
+                        <h4>数据增强配置（语音克隆）</h4>
+                        <p>提高语音克隆的数据效率</p>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>⏱️ 时间拉伸范围</label>
+                        <select id="timeStretch">
+                            <option value="none">不使用</option>
+                            <option value="narrow">窄范围（0.9-1.1x）</option>
+                            <option value="moderate" selected>适中（0.8-1.2x）</option>
+                            <option value="wide">宽范围（0.7-1.3x）</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>🎵 音调偏移范围</label>
+                        <select id="pitchShift">
+                            <option value="none">不使用</option>
+                            <option value="semitone-1">±1半音</option>
+                            <option value="semitone-2" selected>±2半音</option>
+                            <option value="semitone-3">±3半音</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>🔊 噪声添加强度</label>
+                        <select id="noiseLevel">
+                            <option value="none">不添加</option>
+                            <option value="light" selected>轻微（SNR 20-30dB）</option>
+                            <option value="moderate">适中（SNR 10-20dB）</option>
+                            <option value="heavy">较重（SNR 5-10dB）</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>🎚️ 音量变化范围</label>
+                        <select id="volumeVariation">
+                            <option value="none">不使用</option>
+                            <option value="small" selected>小范围（0.8-1.2x）</option>
+                            <option value="medium">中范围（0.7-1.3x）</option>
+                            <option value="large">大范围（0.6-1.4x）</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 技术性能优化 -->
+            <div class="tech-section">
+                <div class="tech-header">
+                    <div class="tech-icon">⚡</div>
+                    <div class="tech-title">
+                        <h4>技术性能优化</h4>
+                        <p>处理速度与质量的平衡</p>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>🚀 推理速度模式</label>
+                        <select id="inferenceMode">
+                            <option value="quality">质量优先（慢）</option>
+                            <option value="balanced" selected>平衡模式</option>
+                            <option value="speed">速度优先（快）</option>
+                            <option value="realtime">实时模式（最快）</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>💻 计算设备</label>
+                        <select id="computeDevice">
+                            <option value="auto" selected>自动选择</option>
+                            <option value="cpu">CPU</option>
+                            <option value="gpu">GPU（CUDA）</option>
+                            <option value="gpu-fp16">GPU半精度</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>📦 批处理大小</label>
+                        <select id="batchSize">
+                            <option value="1">1（逐个处理）</option>
+                            <option value="4">4（小批量）</option>
+                            <option value="8" selected>8（标准）</option>
+                            <option value="16">16（大批量）</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>💾 缓存策略</label>
+                        <select id="voiceCacheStrategy">
+                            <option value="disabled">禁用缓存</option>
+                            <option value="minimal">最小缓存</option>
+                            <option value="smart" selected>智能缓存</option>
+                            <option value="aggressive">激进缓存</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 生成配音 -->
+        <div class="section">
+            <div class="section-title">5️⃣ 生成AI配音</div>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+                <button class="btn btn-primary" onclick="generateVoice()" style="width: 100%; padding: 15px; font-size: 18px; border-radius: 999px;">
+                    🎙️ 生成配音
+                </button>
+                <button class="btn btn-secondary" onclick="generateBatchVoice()" style="width: 100%; padding: 13px; font-size: 15px; border-radius: 999px; margin-left: 0;">
+                    📚 批量生成配音（按行拆分文稿）
+                </button>
+            </div>
+            <div id="batchVoiceResults" style="display: none; margin-top: 16px; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb; background: #f9fafb;">
+                <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">批量配音结果</div>
+                <div id="batchVoiceResultsList" style="max-height: 200px; overflow-y: auto; font-size: 13px; color: #374151;"></div>
+            </div>
+            
+            <div class="audio-player" id="audioPlayer">
+                <div style="font-weight: 600; margin-bottom: 15px;">✅ 配音生成成功！</div>
+                <audio controls style="width: 100%;" id="audioElement">
+                    <source src="" type="audio/mpeg">
+                </audio>
+                <button class="btn btn-primary" onclick="downloadAudio()" style="margin-top: 15px;">
+                    📥 下载音频
+                </button>
+            </div>
+
+            <div id="voiceProgressContainer" class="progress-container">
+                <div style="margin-bottom: 6px; font-weight: 600;">配音生成进度</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="voiceProgressFill">0%</div>
+                </div>
+                <div id="voiceProgressText" style="margin-top: 6px; font-size: 13px; color: #666; text-align: center;"></div>
+            </div>
+        </div>
+
+            </div>
+
+            <aside class="recent-panel">
+                <div class="recent-panel-header">
+                    <div class="recent-panel-title">
+                        <span class="icon">🎧</span>
+                        <span>最近配音项目</span>
+                    </div>
+                    <div class="recent-panel-sub">最近 5 个项目<span class="recent-refresh" onclick="loadRecentVoiceoverProjects()">刷新</span></div>
+                </div>
+                <div id="recentVoiceoverProjects" class="recent-list"></div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/common.js"></script>
+    <script>
+        let selectedVoice = 'zh-CN-XiaoxiaoNeural';
+        let selectedEngine = 'edge-tts'; // 默认选择Edge-TTS
+        let cloneAudioFile = null;
+
+        function selectEngine(engine, element) {
+            // 兼容 HTML 中使用的简写别名
+            selectTTSEngine(engine, element);
+        }
+
+        // 一键套用“短视频配音推荐参数”
+        function applyShortVideoVoicePreset() {
+            console.log('🎧 套用短视频配音推荐参数');
+
+            // 1）引擎：Edge-TTS
+            try {
+                const engineCards = Array.from(document.querySelectorAll('.engine-card'));
+                const edgeCard = engineCards.find(c => {
+                    const oc = c.getAttribute('onclick') || '';
+                    return oc.indexOf("selectEngine('edge-tts'") !== -1;
+                });
+                if (edgeCard) {
+                    selectEngine('edge-tts', edgeCard);
+                } else {
+                    selectedEngine = 'edge-tts';
+                }
+            } catch (e) {
+                console.log('applyShortVideoVoicePreset: 切换引擎失败', e);
+            }
+
+            // 2）音色：云枫（解说音 · 磁性），适合短视频解说
+            try {
+                const voiceCards = Array.from(document.querySelectorAll('#edgeTTSVoices .voice-card'));
+                const yunfengCard = voiceCards.find(c => {
+                    const oc = c.getAttribute('onclick') || '';
+                    return oc.indexOf("selectVoice('zh-CN-YunfengNeural'") !== -1;
+                });
+                if (yunfengCard) {
+                    selectVoice('zh-CN-YunfengNeural', yunfengCard);
+                } else {
+                    selectedVoice = 'zh-CN-YunfengNeural';
+                }
+            } catch (e) {
+                console.log('applyShortVideoVoicePreset: 切换音色失败', e);
+            }
+
+            // 3）语速/音量/音高：适合 60-120 秒短视频的通用解说
+            const rateEl = document.getElementById('rate');
+            const pitchEl = document.getElementById('pitch');
+            const volumeEl = document.getElementById('volume');
+
+            if (rateEl) {
+                rateEl.value = 10; // 略快
+                if (typeof updateRate === 'function') {
+                    updateRate(10);
+                }
+            }
+            if (pitchEl) {
+                pitchEl.value = 0; // 中性音高
+                if (typeof updatePitch === 'function') {
+                    updatePitch(0);
+                }
+            }
+            if (volumeEl) {
+                volumeEl.value = 5; // 稍微提高一点音量
+                if (typeof updateVolume === 'function') {
+                    updateVolume(5);
+                }
+            }
+
+            try {
+                if (typeof saveVoiceoverPreferences === 'function') {
+                    saveVoiceoverPreferences();
+                }
+            } catch (e) {
+                console.log('applyShortVideoVoicePreset saveVoiceoverPreferences 失败:', e);
+            }
+
+            if (window.Notification && Notification.info) {
+                Notification.info('已套用短视频配音推荐参数：适合 60-120 秒解说类短视频，可根据文案内容再微调。');
+            }
+        }
+
+        function formatTimeAgoForVoiceover(dateString) {
+            if (!dateString) return '未知时间';
+            const now = new Date();
+            const date = new Date(dateString);
+            const diff = Math.floor((now - date) / 1000);
+
+            if (diff < 60) return '刚刚';
+            if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+            if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+            if (diff < 2592000) return Math.floor(diff / 86400) + '天前';
+            if (diff < 31536000) return Math.floor(diff / 2592000) + '个月前';
+            return Math.floor(diff / 31536000) + '年前';
+        }
+
+        async function loadRecentVoiceoverProjects() {
+            const container = document.getElementById('recentVoiceoverProjects');
+            if (!container) return;
+
+            container.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:12px;color:#6b7280;">加载中...</div>';
+
+            try {
+                const res = await fetch('/api/projects?type=voiceover&limit=5&sort=updated_at&order=desc', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                }).then(r => r.json());
+
+                if (!res || res.code !== 0 || !res.data || !Array.isArray(res.data.projects)) {
+                    throw new Error((res && res.msg) || '加载失败');
+                }
+
+                const projects = res.data.projects;
+                if (!projects.length) {
+                    container.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:12px;color:#6b7280;">暂无最近项目</div>';
+                    return;
+                }
+
+                const statusClassMap = {
+                    completed: 'completed',
+                    processing: 'processing',
+                    running: 'processing',
+                    pending: 'pending',
+                    failed: 'failed'
+                };
+                const statusTextMap = {
+                    completed: '已完成',
+                    processing: '处理中',
+                    running: '处理中',
+                    pending: '待处理',
+                    failed: '已失败'
+                };
+
+                container.innerHTML = projects.map(p => {
+                    const statusKey = String(p.status || 'pending').toLowerCase();
+                    const statusClass = statusClassMap[statusKey] || 'pending';
+                    const statusText = statusTextMap[statusKey] || '待处理';
+                    const timeAgo = formatTimeAgoForVoiceover(p.updated_at || p.created_at);
+                    const name = p.name || '未命名项目';
+
+                    let metaParts = [];
+                    try {
+                        const rawCfg = p.config;
+                        if (rawCfg) {
+                            const cfg = (typeof rawCfg === 'string') ? JSON.parse(rawCfg) : rawCfg;
+                            if (cfg && typeof cfg === 'object') {
+                                const tpl = cfg.template;
+                                const fmt = cfg.output_format || cfg.format;
+                                const quality = cfg.quality || cfg.output_quality;
+                                if (tpl) {
+                                    metaParts.push('模板：' + tpl);
+                                }
+                                if (fmt || quality) {
+                                    const outLabel = '输出：' + [fmt, quality].filter(Boolean).join('/');
+                                    metaParts.push(outLabel);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('解析项目配置失败:', e);
+                    }
+
+                    metaParts.push(timeAgo);
+                    const metaText = metaParts.join(' · ');
+
+                    return `
+                        <div class="recent-item" onclick="openProjectFromVoiceover('${p.id}')">
+                            <div class="recent-item-main">
+                                <div class="recent-item-title" title="${name}（${timeAgo}）">${name}</div>
+                                <div class="recent-item-meta">${metaText}</div>
+                            </div>
+                            <span class="recent-status ${statusClass}">${statusText}</span>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('加载最近配音项目失败:', e);
+                container.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:12px;color:#f97316;">加载失败，稍后重试</div>';
+            }
+        }
+
+        function openProjectFromVoiceover(projectId) {
+            if (!projectId) return;
+            try {
+                if (window.sessionStorage) {
+                    sessionStorage.setItem('current_project_id', projectId);
+                }
+            } catch (e) {
+                console.log('保存当前项目ID失败:', e);
+            }
+            window.location.href = '/';
+        }
+
+        // 从已保存的AI配音项目中选择配置（仅使用 type=voiceover 的项目，避免与其他功能混淆）
+        // ==================== 配音历史记录管理 ====================
+        
+        // 获取当前选中音色的名称
+        function getSelectedVoiceName() {
+            if (!selectedVoice) return '未知音色';
+            const cards = Array.from(document.querySelectorAll('.voice-card'));
+            const card = cards.find(c => {
+                const oc = c.getAttribute('onclick') || '';
+                return oc.indexOf("selectVoice('" + selectedVoice + "'") !== -1;
+            });
+            if (card) {
+                const nameEl = card.querySelector('div[style*="font-size"]');
+                if (nameEl) return nameEl.textContent.trim();
+            }
+            return selectedVoice;
+        }
+        
+        // 保存配音记录到localStorage
+        function saveVoiceoverRecord(record) {
+            try {
+                const history = getVoiceoverHistory();
+                // 添加时间戳和ID
+                record.id = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                record.timestamp = new Date().toISOString();
+                // 插入到数组开头（最新的在前）
+                history.unshift(record);
+                // 只保留最近100条
+                if (history.length > 100) {
+                    history.splice(100);
+                }
+                localStorage.setItem('voiceover_history', JSON.stringify(history));
+            } catch (e) {
+                console.error('保存配音记录失败:', e);
+            }
+        }
+        
+        // 获取配音历史记录
+        function getVoiceoverHistory() {
+            try {
+                const data = localStorage.getItem('voiceover_history');
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                console.error('读取配音历史失败:', e);
+                return [];
+            }
+        }
+        
+        // 删除配音记录
+        function deleteVoiceoverRecord(id) {
+            try {
+                const history = getVoiceoverHistory();
+                const filtered = history.filter(r => r.id !== id);
+                localStorage.setItem('voiceover_history', JSON.stringify(filtered));
+                return true;
+            } catch (e) {
+                console.error('删除配音记录失败:', e);
+                return false;
+            }
+        }
+        
+        // 清除当前复用选择
+        function clearVoiceoverSelection() {
+            const info = document.getElementById('voiceoverSelectionInfo');
+            const btn = document.getElementById('clearVoiceoverSelection');
+            if (info) info.style.display = 'none';
+            if (btn) btn.style.display = 'none';
+            window.currentVoiceoverSelection = null;
+            if (window.Notification && Notification.success) {
+                Notification.success('已清除复用选择');
+            }
+        }
+        
+        // 显示最近3条配音记录（简化版）
+        function showRecentVoiceovers() {
+            const history = getVoiceoverHistory();
+            if (!history || history.length === 0) {
+                if (window.Notification && Notification.info) {
+                    Notification.info('暂无配音历史记录，请先生成配音');
+                }
+                return;
+            }
+            
+            const recent = history.slice(0, 3);
+            const layer = window.layer || (window.layui && window.layui.layer);
+            if (!layer || !layer.open) {
+                alert('显示最近 ' + recent.length + ' 条配音记录');
+                return;
+            }
+            
+            let html = '<div style="padding: 16px;">';
+            html += '<div style="max-height: 320px; overflow-y: auto;">';
+            
+            recent.forEach((record, idx) => {
+                const text = (record.text || '').slice(0, 50) + ((record.text || '').length > 50 ? '...' : '');
+                const time = record.timestamp ? new Date(record.timestamp).toLocaleString('zh-CN', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
+                const voice = record.voice_name || record.voice_id || '未知音色';
+                
+                // 转义单引号防止JavaScript错误
+                const safeId = (record.id || '').replace(/'/g, "\\'");
+                const safeAudioPath = (record.audio_path || '').replace(/'/g, "\\'");
+                
+                html += '<div class="voiceover-record-item" data-id="' + record.id + '" style="padding: 12px; margin-bottom: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'#f8fafc\'">';
+                html += '<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">';
+                html += '<div style="font-size: 13px; font-weight: 600; color: #334155;">🎙️ ' + voice + '</div>';
+                html += '<div style="font-size: 11px; color: #94a3b8;">' + time + '</div>';
+                html += '</div>';
+                html += '<div style="font-size: 12px; color: #64748b; line-height: 1.5;">' + text.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+                html += '<div style="margin-top: 8px; display: flex; gap: 6px;">';
+                html += '<button onclick="applyVoiceoverRecord(\'' + safeId + '\'); event.stopPropagation();" style="padding: 4px 10px; font-size: 11px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">📝 复用</button>';
+                if (record.audio_path) {
+                    html += '<button onclick="playVoiceoverAudio(\'' + safeAudioPath + '\'); event.stopPropagation();" style="padding: 4px 10px; font-size: 11px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">▶️ 播放</button>';
+                }
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            html += '<div style="margin-top: 12px; text-align: center;">';
+            html += '<button onclick="openVoiceoverHistory()" style="padding: 6px 16px; font-size: 12px; background: #6366f1; color: white; border: none; border-radius: 6px; cursor: pointer;">查看全部历史记录 →</button>';
+            html += '</div>';
+            html += '</div>';
+            
+            layer.open({
+                type: 1,
+                title: '⏱️ 最近3条配音',
+                closeBtn: 1,
+                area: ['480px', 'auto'],
+                content: html
+            });
+        }
+        
+        // 打开配音历史记录（完整版）
+        function openVoiceoverHistory() {
+            const history = getVoiceoverHistory();
+            const layer = window.layer || (window.layui && window.layui.layer);
+            
+            if (!layer || !layer.open) {
+                alert('当前有 ' + history.length + ' 条配音历史记录');
+                return;
+            }
+            
+            if (!history || history.length === 0) {
+                layer.msg('暂无配音历史记录，生成配音后会自动保存', {icon: 0, time: 2500});
+                return;
+            }
+            
+            let html = '<div style="padding: 16px;">';
+            html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">';
+            html += '<div style="font-size: 14px; color: #64748b;">📚 共 ' + history.length + ' 条配音记录</div>';
+            html += '<button onclick="clearAllVoiceoverHistory()" style="padding: 4px 12px; font-size: 11px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ 清空全部</button>';
+            html += '</div>';
+            html += '<div id="voiceover-history-list" style="max-height: 480px; overflow-y: auto;">';
+            
+            history.forEach((record, idx) => {
+                const text = (record.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const shortText = text.slice(0, 60) + (text.length > 60 ? '...' : '');
+                const time = record.timestamp ? new Date(record.timestamp).toLocaleString('zh-CN') : '';
+                const voice = record.voice_name || record.voice_id || '未知';
+                const engine = record.engine || 'edge-tts';
+                const rate = record.rate || '+0%';
+                const pitch = record.pitch || 0;
+                
+                // 转义单引号防止JavaScript错误
+                const safeId = (record.id || '').replace(/'/g, "\\'");
+                const safeAudioPath = (record.audio_path || '').replace(/'/g, "\\'");
+                
+                html += '<div class="voiceover-record-item" data-id="' + record.id + '" style="padding: 14px; margin-bottom: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">';
+                html += '<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">';
+                html += '<div style="font-size: 13px; font-weight: 600; color: #334155;">' + (idx + 1) + '. ' + voice + ' (' + engine + ')</div>';
+                html += '<div style="font-size: 11px; color: #94a3b8;">' + time + '</div>';
+                html += '</div>';
+                html += '<div style="font-size: 12px; color: #64748b; line-height: 1.6; margin-bottom: 8px; max-height: 48px; overflow: hidden;">' + shortText + '</div>';
+                html += '<div style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">参数：语速' + rate + ' | 音调' + pitch + '</div>';
+                html += '<div style="display: flex; gap: 8px; flex-wrap: wrap;">';
+                html += '<button onclick="applyVoiceoverRecord(\'' + safeId + '\')" style="padding: 5px 12px; font-size: 11px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer;">📝 复用文本和参数</button>';
+                if (record.audio_path) {
+                    html += '<button onclick="playVoiceoverAudio(\'' + safeAudioPath + '\')" style="padding: 5px 12px; font-size: 11px; background: #10b981; color: white; border: none; border-radius: 5px; cursor: pointer;">▶️ 播放</button>';
+                    html += '<a href="' + safeAudioPath.replace(/\\/g, '') + '" download style="padding: 5px 12px; font-size: 11px; background: #8b5cf6; color: white; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block;">💾 下载</a>';
+                }
+                html += '<button onclick="deleteVoiceoverRecord(\'' + safeId + '\'); refreshVoiceoverHistory()" style="padding: 5px 12px; font-size: 11px; background: #ef4444; color: white; border: none; border-radius: 5px; cursor: pointer;">🗑️ 删除</button>';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            html += '</div></div>';
+            
+            window.voiceoverHistoryLayer = layer.open({
+                type: 1,
+                title: '📚 配音历史记录',
+                closeBtn: 1,
+                area: ['720px', '600px'],
+                content: html
+            });
+        }
+        
+        // 应用配音记录（复用文本和参数）
+        function applyVoiceoverRecord(recordId) {
+            const history = getVoiceoverHistory();
+            const record = history.find(r => r.id === recordId);
+            if (!record) {
+                if (window.Notification && Notification.error) {
+                    Notification.error('未找到该配音记录');
+                }
+                return;
+            }
+            
+            // 应用文本
+            const textarea = document.getElementById('voiceText');
+            if (textarea && record.text) {
+                textarea.value = record.text;
+                const charCount = document.getElementById('charCount');
+                if (charCount) charCount.textContent = record.text.length;
+            }
+            
+            // 应用音色
+            if (record.voice_id) {
+                const cards = Array.from(document.querySelectorAll('.voice-card'));
+                const card = cards.find(c => {
+                    const oc = c.getAttribute('onclick') || '';
+                    return oc.indexOf("selectVoice('" + record.voice_id + "'") !== -1;
+                });
+                if (card) {
+                    selectVoice(record.voice_id, card);
+                } else {
+                    selectedVoice = record.voice_id;
+                }
+            }
+            
+            // 应用引擎
+            if (record.engine) {
+                selectedEngine = record.engine;
+            }
+            
+            // 应用参数
+            const rateEl = document.getElementById('rate');
+            const pitchEl = document.getElementById('pitch');
+            const volumeEl = document.getElementById('volume');
+            
+            if (rateEl && record.rate !== undefined) {
+                const rateMatch = String(record.rate).match(/-?\d+/);
+                if (rateMatch) {
+                    rateEl.value = parseInt(rateMatch[0], 10);
+                    if (typeof updateRate === 'function') updateRate(rateEl.value);
+                }
+            }
+            
+            if (pitchEl && record.pitch !== undefined) {
+                pitchEl.value = record.pitch;
+                if (typeof updatePitch === 'function') updatePitch(record.pitch);
+            }
+            
+            if (volumeEl && record.volume !== undefined) {
+                const volMatch = String(record.volume).match(/-?\d+/);
+                if (volMatch) {
+                    volumeEl.value = parseInt(volMatch[0], 10);
+                    if (typeof updateVolume === 'function') updateVolume(volumeEl.value);
+                }
+            }
+            
+            // 显示复用信息
+            const info = document.getElementById('voiceoverSelectionInfo');
+            const text = document.getElementById('voiceoverSelectionText');
+            const btn = document.getElementById('clearVoiceoverSelection');
+            if (info && text) {
+                const shortText = (record.text || '').slice(0, 40) + ((record.text || '').length > 40 ? '...' : '');
+                text.textContent = shortText + ' (' + (record.voice_name || record.voice_id || '未知音色') + ')';
+                info.style.display = 'block';
+            }
+            if (btn) btn.style.display = 'inline-block';
+            
+            window.currentVoiceoverSelection = record;
+            
+            // 关闭弹窗
+            if (window.layer && window.voiceoverHistoryLayer) {
+                try { layer.close(window.voiceoverHistoryLayer); } catch(e) {}
+            }
+            
+            if (window.Notification && Notification.success) {
+                Notification.success('✅ 已复用配音记录的文本和参数');
+            }
+        }
+        
+        // 播放配音音频
+        function playVoiceoverAudio(audioPath) {
+            const player = document.getElementById('audioElement');
+            if (!player) {
+                if (window.Notification && Notification.error) {
+                    Notification.error('音频播放器未找到');
+                }
+                return;
+            }
+            
+            const container = document.getElementById('audioPlayer');
+            if (container) container.style.display = 'block';
+            
+            player.src = audioPath;
+            player.load();
+            player.play().catch(e => {
+                console.error('播放失败:', e);
+                if (window.Notification && Notification.error) {
+                    Notification.error('音频播放失败');
+                }
+            });
+        }
+        
+        // 刷新历史记录显示
+        function refreshVoiceoverHistory() {
+            if (window.voiceoverHistoryLayer) {
+                try { layer.close(window.voiceoverHistoryLayer); } catch(e) {}
+                setTimeout(openVoiceoverHistory, 100);
+            }
+        }
+        
+        // 清空全部历史记录
+        function clearAllVoiceoverHistory() {
+            const layer = window.layer || (window.layui && window.layui.layer);
+            if (!layer || !layer.confirm) {
+                if (confirm('确定要清空全部配音历史记录吗？此操作不可恢复！')) {
+                    localStorage.removeItem('voiceover_history');
+                    alert('已清空全部历史记录');
+                    location.reload();
+                }
+                return;
+            }
+            
+            layer.confirm('确定要清空全部配音历史记录吗？此操作不可恢复！', {
+                icon: 3,
+                title: '确认清空',
+                btn: ['确定', '取消']
+            }, function(index) {
+                localStorage.removeItem('voiceover_history');
+                layer.close(index);
+                if (window.Notification && Notification.success) {
+                    Notification.success('已清空全部历史记录');
+                }
+                refreshVoiceoverHistory();
+            });
+        }
+        
+        // ==================== 原有功能保留（兼容） ====================
+        
+        async function openVoiceoverProjectPicker() {
+            try {
+                let loading = null;
+                if (window.layer && layer.msg) {
+                    loading = layer.msg('正在加载配音项目...', {icon: 16, time: 0, shade: 0.25});
+                }
+                const resp = await fetch('/api/projects?type=voiceover&limit=20&sort=updated_at&order=desc').then(r => r.json()).catch(() => null);
+                if (loading) {
+                    try { layer.close(loading); } catch(e) {}
+                }
+
+                const projects = (resp && resp.code === 0 && resp.data && Array.isArray(resp.data.projects))
+                    ? resp.data.projects
+                    : [];
+
+                if (!projects.length) {
+                    if (window.Notification && Notification.info) {
+                        Notification.info('当前暂无已保存的 AI 配音项目可复用，请先完成一两个配音任务。');
+                    }
+                    return;
+                }
+
+                let html = '<div style="padding:12px 16px;">';
+                html += '<div style="font-size:13px; color:#4b5563; margin-bottom:8px;">';
+                html += '请选择一个已有的 AI 配音项目，将复用该项目的配音文本与音色/参数配置，不会影响原项目。';
+                html += '</div>';
+                html += '<div id="voiceover-project-list" style="max-height:360px; overflow:auto;">';
+
+                projects.forEach(function(p, idx) {
+                    const name = (p.name || '未命名项目').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    let cfg = {};
+                    try {
+                        if (p.config) {
+                            if (typeof p.config === 'string') cfg = JSON.parse(p.config); else cfg = p.config;
+                        }
+                    } catch(e) {}
+                    const text = (cfg && cfg.text) || '';
+                    const snippet = text ? text.slice(0, 40).replace(/</g, '&lt;').replace(/>/g, '&gt;') + (text.length > 40 ? '…' : '') : '（无文本记录）';
+                    html += '<div class="voiceover-project-item" data-idx="' + idx + '" style="padding:8px 10px; margin-bottom:6px; border-radius:6px; background:#f9fafb; border:1px solid #e5e7eb; cursor:pointer;">';
+                    html += '<div style="font-size:13px; color:#111827; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🔊 ' + name + '</div>';
+                    html += '<div style="font-size:12px; color:#6b7280; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">文本预览：' + snippet + '</div>';
+                    html += '</div>';
+                });
+
+                html += '</div></div>';
+
+                if (!(window.layer && layer.open)) {
+                    // 无 layer 环境时简化为 alert 提示
+                    alert('检测到 ' + projects.length + ' 个 AI 配音项目，请在“项目管理-配音模式”中查看详情。');
+                    return;
+                }
+
+                const layerIndex = layer.open({
+                    type: 1,
+                    title: '从已保存配音项目选择',
+                    area: ['640px', '460px'],
+                    content: html
+                });
+
+                setTimeout(function () {
+                    const listEl = document.getElementById('voiceover-project-list');
+                    if (!listEl) return;
+                    const items = listEl.querySelectorAll('.voiceover-project-item');
+                    items.forEach(function (el) {
+                        el.addEventListener('click', function () {
+                            const idxStr = el.getAttribute('data-idx') || '0';
+                            const i = parseInt(idxStr, 10) || 0;
+                            const p = projects[i];
+                            if (!p) return;
+
+                            let cfg = {};
+                            try {
+                                if (p.config) {
+                                    if (typeof p.config === 'string') cfg = JSON.parse(p.config); else cfg = p.config;
+                                }
+                            } catch(e) { cfg = {}; }
+
+                            const text = (cfg && cfg.text) || '';
+                            const voiceId = (cfg && (cfg.voice_id || cfg.voice)) || null;
+                            const rateStr = cfg && cfg.rate;
+                            const pitchStr = cfg && cfg.pitch;
+                            const volumeStr = cfg && cfg.volume;
+
+                            // 应用文本
+                            const txt = document.getElementById('voiceText');
+                            if (txt) {
+                                txt.value = text;
+                                const cc = document.getElementById('charCount');
+                                if (cc) cc.textContent = (text || '').length;
+                            }
+
+                            // 应用音色
+                            if (voiceId) {
+                                const cards = Array.from(document.querySelectorAll('.voice-card'));
+                                const card = cards.find(c => {
+                                    const oc = c.getAttribute('onclick') || '';
+                                    return oc.indexOf("selectVoice('" + String(voiceId) + "'") !== -1;
+                                });
+                                if (card) {
+                                    selectVoice(voiceId, card);
+                                } else {
+                                    selectedVoice = voiceId;
+                                }
+                            }
+
+                            // 工具函数：从 +0% / +0Hz 等字符串中提取整数
+                            const parseNum = function (v, defVal) {
+                                if (v === null || v === undefined) return defVal;
+                                const m = String(v).match(/-?\d+/);
+                                return m ? parseInt(m[0], 10) : defVal;
+                            };
+
+                            const rateInt = parseNum(rateStr, null);
+                            const pitchInt = parseNum(pitchStr, null);
+                            const volumeInt = parseNum(volumeStr, null);
+
+                            const rateEl = document.getElementById('rate');
+                            const pitchEl = document.getElementById('pitch');
+                            const volumeEl = document.getElementById('volume');
+                            if (rateEl && rateInt !== null) {
+                                rateEl.value = rateInt;
+                                if (typeof updateRate === 'function') updateRate(rateInt);
+                            }
+                            if (pitchEl && pitchInt !== null) {
+                                pitchEl.value = pitchInt;
+                                if (typeof updatePitch === 'function') updatePitch(pitchInt);
+                            }
+                            if (volumeEl && volumeInt !== null) {
+                                volumeEl.value = volumeInt;
+                                if (typeof updateVolume === 'function') updateVolume(volumeInt);
+                            }
+
+                            try {
+                                if (typeof saveVoiceoverPreferences === 'function') {
+                                    saveVoiceoverPreferences();
+                                }
+                            } catch(e) {}
+
+                            if (window.Notification && Notification.success) {
+                                Notification.success('已从项目“' + (p.name || '未命名项目') + '”复用文本和配音参数。');
+                            }
+
+                            try { layer.close(layerIndex); } catch(e) {}
+                        });
+                    });
+                }, 0);
+            } catch (e) {
+                if (window.Notification && Notification.error) {
+                    Notification.error('获取配音项目失败：' + (e && e.message ? e.message : '网络错误'));
+                }
+            }
+        }
+
+        // 从已上传素材中选择（视频/音频）
+        async function openVoiceoverMaterialPicker() {
+            try {
+                const layerApi = (window.layer || (window.layui && window.layui.layer));
+                if (!layerApi || !layerApi.msg || !layerApi.open) {
+                    alert('当前弹窗组件未正确加载，无法打开“从已上传素材选择”对话框。');
+                    return;
+                }
+                const layer = layerApi;
+
+                const loading = layer.msg('正在加载已上传素材...', {icon: 16, time: 0, shade: 0.25});
+                const resp = await fetch('/api/materials/list?page=1&per_page=50').then(r => r.json()).catch(() => null);
+                try { layer.close(loading); } catch (e) {}
+
+                const data = (resp && resp.code === 0 && resp.data && Array.isArray(resp.data.materials))
+                    ? resp.data.materials
+                    : [];
+
+                const videoExts = ['mp4','avi','mov','mkv','flv','wmv','webm'];
+                const audioExts = ['mp3','wav','aac','m4a','ogg','flac'];
+
+                const materials = data.filter(function (m) {
+                    const ext = (m && m.type ? String(m.type) : '').toLowerCase();
+                    if (!ext) return false;
+                    if (videoExts.indexOf(ext) !== -1) return true;
+                    if (audioExts.indexOf(ext) !== -1) return true;
+                    return false;
+                });
+
+                if (!materials.length) {
+                    layer.msg('当前暂无可用的视频/音频素材，请先在素材库中上传文件。', {icon: 0, time: 3000});
+                    return;
+                }
+
+                let html = '<div style="padding:10px 14px;">';
+                html += '<div style="font-size:13px;color:#4b5563;margin-bottom:6px;">选择一个已上传素材，点击后会记录其路径，方便后续复用。</div>';
+                html += '<ul id="voiceover-material-list" style="max-height:360px;overflow:auto;padding:0;margin:0;list-style:none;">';
+
+                materials.forEach(function (m, idx) {
+                    const name = (m.filename || m.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const ext = (m.type || '').toString().toLowerCase();
+                    const icon = audioExts.indexOf(ext) !== -1 ? '🎵 ' : '🎬 ';
+
+                    // 兼容旧版：没有 relative_path 时，退回 uploads/materials
+                    const rel = (m && m.relative_path)
+                        ? m.relative_path.replace(/^\/+/, '')
+                        : ('uploads/materials/' + (m.filename || ''));
+                    const href = '/' + rel.replace(/^\/+/, '');
+                    const safeHref = href.replace(/"/g, '&quot;');
+                    const safeText = rel.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                    html += '<li class="voiceover-material-item" data-idx="' + idx + '" style="padding:6px 8px;border-bottom:1px solid #e5e7eb;cursor:pointer;">';
+                    html += '<div style="font-size:13px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + icon + name + '</div>';
+                    html += '<div style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">路径：';
+                    html += '<a href="' + safeHref + '" target="_blank" style="color:#2563eb;text-decoration:underline;" onclick="event.stopPropagation();">' + safeText + '</a>';
+                    html += '</div></li>';
+                });
+
+                html += '</ul></div>';
+
+                const layerIndex = layer.open({
+                    type: 1,
+                    title: '从已上传素材选择',
+                    area: ['720px', '480px'],
+                    content: html
+                });
+
+                setTimeout(function () {
+                    const listEl = document.getElementById('voiceover-material-list');
+                    if (!listEl) return;
+                    const items = listEl.querySelectorAll('.voiceover-material-item');
+                    items.forEach(function (el) {
+                        el.addEventListener('click', function () {
+                            const idxStr = el.getAttribute('data-idx') || '0';
+                            const i = parseInt(idxStr, 10) || 0;
+                            const m = materials[i];
+                            if (!m) return;
+
+                            const rel = (m && m.relative_path)
+                                ? m.relative_path.replace(/^\/+/, '')
+                                : ('uploads/materials/' + (m.filename || ''));
+                            const path = '/' + rel.replace(/^\/+/, '');
+                            window.voiceoverSelectedMaterialPath = path;
+
+                            const info = document.getElementById('voiceoverSelectedMaterialInfo');
+                            if (info) {
+                                info.style.display = 'block';
+                                const safeName = (m.filename || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                const safePath = path.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                info.innerHTML = '✅ 已选择素材：' + safeName + '（路径：' + safePath + '）'
+                                    + '<button type="button" style="margin-left:8px;padding:2px 8px;font-size:11px;border-radius:4px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;" onclick="clearVoiceoverSelectedMaterial()">清除选择</button>';
+                            }
+
+                            if (window.Notification && Notification.success) {
+                                Notification.success('已选择素材：' + (m.filename || '')); 
+                            }
+
+                            try { layer.close(layerIndex); } catch (e) {}
+                        });
+                    });
+                }, 0);
+            } catch (e) {
+                const layerApi = (window.layer || (window.layui && window.layui.layer));
+                if (layerApi && layerApi.msg) {
+                    layerApi.msg('获取素材列表失败：' + (e && e.message ? e.message : '网络错误'), {icon: 2, time: 3000});
+                } else {
+                    alert('获取素材列表失败：' + (e && e.message ? e.message : '网络错误'));
+                }
+            }
+        }
+        
+        // 清除已选择的素材
+        function clearVoiceoverSelectedMaterial() {
+            window.voiceoverSelectedMaterialPath = null;
+            const info = document.getElementById('voiceoverSelectedMaterialInfo');
+            if (info) {
+                info.style.display = 'none';
+                info.innerHTML = '';
+            }
+            if (window.Notification && Notification.success) {
+                Notification.success('已清除素材选择');
+            }
+        }
+
+        // 选择TTS引擎
+        function selectTTSEngine(engine, element) {
+            // 移除所有active类
+            document.querySelectorAll('.engine-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            // 添加active类到选中的卡片
+            element.classList.add('active');
+            // 保存选择
+            selectedEngine = engine;
+            console.log('已选择TTS引擎:', engine);
+            saveVoiceoverPreferences();
+            
+            // 切换音色显示
+            if (engine === 'voice-clone') {
+                document.getElementById('edgeTTSVoices').style.display = 'none';
+                document.getElementById('voiceCloneSection').style.display = 'block';
+                // 动态加载本地克隆音色列表
+                initVoiceCloneVoices();
+            } else {
+                document.getElementById('edgeTTSVoices').style.display = 'block';
+                document.getElementById('voiceCloneSection').style.display = 'none';
+            }
+        }
+
+        // 动态加载本地 Voice Clone 内置音色
+        async function initVoiceCloneVoices() {
+            try {
+                const section = document.getElementById('voiceCloneSection');
+                if (!section) return;
+                const grid = section.querySelector('.voice-grid');
+                if (!grid) return;
+
+                const customCard = grid.querySelector('.voice-card-custom');
+
+
+                const resp = await fetch('/api/voice-clone/builtin-voices').then(r => r.json());
+                const voices = resp && resp.code === 0 && Array.isArray(resp.data) ? resp.data : null;
+                if (!voices || !voices.length) {
+                    console.warn('voice_clone builtin-voices api empty，保留默认内置列表');
+                    return;
+                }
+
+                grid.innerHTML = '';
+
+                voices.forEach((v, idx) => {
+                    const id = (v.id || v.value || v.name || 'zh').toString();
+                    const name = (v.name || v.label || id).toString();
+                    const lang = (v.language || '').toString();
+                    const region = (v.region || '').toString();
+
+                    const card = document.createElement('div');
+                    card.className = 'voice-card';
+                    if (idx === 0) card.classList.add('active');
+                    card.onclick = function() { selectVoice(id, card); };
+                    card.innerHTML = `
+                        <div class="voice-icon">🎭</div>
+                        <div class="voice-name">${name}</div>
+                        <div class="voice-desc">${lang || ''}${region ? ' · ' + region : ''}</div>
+                    `;
+                    grid.appendChild(card);
+
+                    if (idx === 0) {
+                        selectedVoice = id;
+                    }
+                });
+
+                // 追加自定义克隆卡片
+                if (customCard) {
+                    grid.appendChild(customCard);
+                }
+            } catch (e) {
+                console.warn('initVoiceCloneVoices failed', e);
+            }
+        }
+
+        // 测试本地 Voice Clone 引擎配置
+        async function testVoiceCloneEngine() {
+            try {
+                if (window.Notification && Notification.info) {
+                    Notification.info('正在测试本地 Voice Clone 引擎配置...');
+                }
+
+                const res = await fetch('/api/test/voice-clone-engine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                }).then(r => r.json());
+
+                if (res && res.code === 0) {
+                    console.log('✅ 本地 Voice Clone 引擎测试成功:', res);
+                    if (window.Notification && Notification.success) {
+                        Notification.success('本地 Voice Clone 引擎配置正常，可以直接生成配音。');
+                    }
+                } else {
+                    const details = res && res.data && Array.isArray(res.data.details)
+                        ? res.data.details.join('；')
+                        : (res && res.msg) || '配置异常，请检查本地模型与可执行文件路径。';
+                    console.error('❌ 本地 Voice Clone 引擎测试失败:', res);
+                    if (window.Notification && Notification.error) {
+                        Notification.error('本地 Voice Clone 引擎配置异常：' + details);
+                    }
+                }
+            } catch (e) {
+                console.error('❌ 本地 Voice Clone 引擎测试请求异常:', e);
+                if (window.Notification && Notification.error) {
+                    Notification.error('测试失败：' + (e && e.message ? e.message : '网络错误')); 
+                }
+            }
+        }
+
+        // 选择音色
+        function selectVoice(voice, element) {
+            // 移除同一音色库中所有卡片的active类
+            const voiceGrid = element.closest('.voice-grid');
+            voiceGrid.querySelectorAll('.voice-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            // 添加active类到选中的卡片
+            element.classList.add('active');
+            // 保存选择
+            selectedVoice = voice;
+            console.log('已选择音色:', voice);
+            saveVoiceoverPreferences();
+        }
+
+        // 打开/关闭自定义克隆面板
+        function toggleCustomClone(element) {
+            const panel = document.getElementById('customClonePanel');
+            if (panel.style.display === 'none' || !panel.style.display) {
+                panel.style.display = 'block';
+                // 移除其他音色卡片的active状态
+                document.querySelectorAll('.voice-card').forEach(card => {
+                    if (!card.classList.contains('voice-card-custom')) {
+                        card.classList.remove('active');
+                    }
+                });
+                // 激活自定义克隆卡片
+                element.classList.add('active');
+                // 加载已保存的克隆音色
+                loadSavedClones();
+            } else {
+                panel.style.display = 'none';
+                element.classList.remove('active');
+            }
+        }
+
+        function closeCustomClone() {
+            const panel = document.getElementById('customClonePanel');
+            panel.style.display = 'none';
+            const customCard = document.querySelector('.voice-card-custom');
+            if (customCard) {
+                customCard.classList.remove('active');
+            }
+        }
+
+        // 处理克隆语音文件上传
+        function handleCloneUpload(input) {
+            const file = input.files[0];
+            if (file) {
+                // 验证文件类型
+                if (!file.type.startsWith('audio/')) {
+                    Notification.warning('请上传音频文件（MP3或WAV格式）');
+                    return;
+                }
+
+                // 验证文件大小（最大50MB）
+                if (file.size > 50 * 1024 * 1024) {
+                    Notification.warning('文件过大，请上传小于50MB的音频文件');
+                    return;
+                }
+
+                cloneAudioFile = file;
+
+                // 隐藏上传区域，显示文件信息
+                document.getElementById('uploadZone').style.display = 'none';
+                const uploadedInfo = document.getElementById('uploadedFileInfo');
+                uploadedInfo.style.display = 'block';
+
+                // 显示文件信息
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = `大小: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+
+                // 尝试获取音频时长
+                const audio = new Audio();
+                const url = URL.createObjectURL(file);
+                audio.src = url;
+                audio.addEventListener('loadedmetadata', function() {
+                    const duration = Math.floor(audio.duration);
+                    document.getElementById('fileDuration').textContent = `时长: ${duration}秒`;
+                    URL.revokeObjectURL(url);
+
+                    // 验证时长
+                    if (duration < 3 || duration > 10) {
+                        Notification.warning(`音频时长为${duration}秒，建议使用3-10秒的音频以获得最佳效果`);
+                    }
+                });
+
+                Notification.success('音频文件已上传，请选择保存或直接使用');
+            }
+        }
+
+        // 移除已上传文件
+        function removeUploadedFile() {
+            cloneAudioFile = null;
+            document.getElementById('uploadZone').style.display = 'block';
+            document.getElementById('uploadedFileInfo').style.display = 'none';
+            document.getElementById('cloneAudioFile').value = '';
+        }
+
+        // 保存克隆音色到库
+        function saveClonedVoice() {
+            if (!cloneAudioFile) {
+                Notification.warning('请先上传参考音频');
+                return;
+            }
+
+            // 弹窗输入音色名称
+            const voiceName = prompt('请为这个克隆音色命名：', '我的音色 ' + new Date().toLocaleDateString());
+            if (!voiceName) return;
+
+            // 创建保存的音色对象
+            const savedVoice = {
+                id: 'clone_' + Date.now(),
+                name: voiceName,
+                fileName: cloneAudioFile.name,
+                fileSize: cloneAudioFile.size,
+                createdAt: new Date().toLocaleString(),
+                file: cloneAudioFile
+            };
+
+            // 保存到localStorage
+            let savedClones = JSON.parse(localStorage.getItem('savedClones') || '[]');
+            savedClones.push({
+                id: savedVoice.id,
+                name: savedVoice.name,
+                fileName: savedVoice.fileName,
+                fileSize: savedVoice.fileSize,
+                createdAt: savedVoice.createdAt
+            });
+            localStorage.setItem('savedClones', JSON.stringify(savedClones));
+
+            // 重新加载音色库
+            loadSavedClones();
+
+            Notification.success(`克隆音色"${voiceName}"已保存到音色库`);
+
+            // 清空上传区域
+            removeUploadedFile();
+        }
+
+        // 直接使用克隆音色
+        function useClonedVoice() {
+            if (!cloneAudioFile) {
+                Notification.warning('请先上传参考音频');
+                return;
+            }
+
+            selectedVoice = 'custom_clone_' + Date.now();
+            Notification.success('已选择自定义克隆音色，点击"生成配音"即可使用');
+            closeCustomClone();
+        }
+
+        // 加载已保存的克隆音色
+        function loadSavedClones() {
+            const savedClones = JSON.parse(localStorage.getItem('savedClones') || '[]');
+            const library = document.getElementById('savedClonesLibrary');
+            const clonesList = document.getElementById('savedClonesList');
+            const cloneCount = document.getElementById('cloneCount');
+
+            if (savedClones.length === 0) {
+                library.style.display = 'none';
+                return;
+            }
+
+            library.style.display = 'block';
+            cloneCount.textContent = savedClones.length + '个';
+
+            clonesList.innerHTML = '';
+            savedClones.forEach(voice => {
+                const card = document.createElement('div');
+                card.className = 'saved-voice-card';
+                card.onclick = function() { selectSavedClone(voice.id, this); };
+                card.innerHTML = `
+                    <button class="saved-voice-delete" onclick="event.stopPropagation(); deleteSavedClone('${voice.id}')">✕</button>
+                    <div class="saved-voice-icon">🎭</div>
+                    <div class="saved-voice-name">${voice.name}</div>
+                    <div class="saved-voice-date">${voice.createdAt}</div>
+                `;
+                clonesList.appendChild(card);
+            });
+        }
+
+        // 选择已保存的克隆音色
+        function selectSavedClone(voiceId, element) {
+            // 移除所有active类
+            document.querySelectorAll('.saved-voice-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            // 激活选中的卡片
+            element.classList.add('active');
+            // 保存选择
+            selectedVoice = voiceId;
+            Notification.success('已选择克隆音色，点击"生成配音"即可使用');
+        }
+
+        // 删除已保存的克隆音色
+        function deleteSavedClone(voiceId) {
+            if (!confirm('确定要删除这个克隆音色吗？')) return;
+
+            let savedClones = JSON.parse(localStorage.getItem('savedClones') || '[]');
+            savedClones = savedClones.filter(v => v.id !== voiceId);
+            localStorage.setItem('savedClones', JSON.stringify(savedClones));
+
+            loadSavedClones();
+            Notification.success('克隆音色已删除');
+        }
+
+        // 更新字数统计
+        document.getElementById('voiceText').addEventListener('input', function() {
+            document.getElementById('charCount').textContent = this.value.length;
+        });
+        document.getElementById('charCount').textContent = document.getElementById('voiceText').value.length;
+
+        // 在初始渲染后尝试恢复配音偏好
+        document.addEventListener('DOMContentLoaded', function(){
+            loadVoiceoverPreferences();
+            initDefaultVoiceEngineFromConfig();
+            loadRecentVoiceoverProjects();
+        });
+
+        function saveVoiceoverPreferences(){
+            try {
+                const rateEl = document.getElementById('rate');
+                const pitchEl = document.getElementById('pitch');
+                const volumeEl = document.getElementById('volume');
+                const prefs = {
+                    engine: selectedEngine || 'edge-tts',
+                    voice: selectedVoice || 'zh-CN-XiaoxiaoNeural',
+                    rate: rateEl ? rateEl.value : null,
+                    pitch: pitchEl ? pitchEl.value : null,
+                    volume: volumeEl ? volumeEl.value : null
+                };
+                localStorage.setItem('jjyb_voiceover_prefs_v1', JSON.stringify(prefs));
+            } catch (e) {
+                console.log('保存配音偏好失败:', e);
+            }
+        }
+
+        function loadVoiceoverPreferences(){
+            try {
+                const raw = localStorage.getItem('jjyb_voiceover_prefs_v1');
+                if (!raw) return;
+                const prefs = JSON.parse(raw) || {};
+
+                // 恢复引擎
+                if (prefs.engine) {
+                    const cards = Array.from(document.querySelectorAll('.engine-card'));
+                    const card = cards.find(c => {
+                        const oc = c.getAttribute('onclick') || '';
+                        return oc.indexOf(`selectEngine('${prefs.engine}'`) !== -1;
+                    });
+                    if (card) {
+                        selectEngine(prefs.engine, card);
+                    } else {
+                        selectedEngine = prefs.engine;
+                    }
+                }
+
+                // 恢复音色（只处理标准 voice-card 列表）
+                if (prefs.voice) {
+                    const cards = Array.from(document.querySelectorAll('.voice-card'));
+                    const card = cards.find(c => {
+                        const oc = c.getAttribute('onclick') || '';
+                        return oc.indexOf(`selectVoice('${prefs.voice}'`) !== -1;
+                    });
+                    if (card) {
+                        selectVoice(prefs.voice, card);
+                    } else {
+                        selectedVoice = prefs.voice;
+                    }
+                }
+
+                // 恢复速率/音高/音量
+                if (typeof prefs.rate !== 'undefined' && prefs.rate !== null) {
+                    const el = document.getElementById('rate');
+                    if (el) {
+                        el.value = prefs.rate;
+                        updateRate(prefs.rate);
+                    }
+                }
+                if (typeof prefs.pitch !== 'undefined' && prefs.pitch !== null) {
+                    const el = document.getElementById('pitch');
+                    if (el) {
+                        el.value = prefs.pitch;
+                        updatePitch(prefs.pitch);
+                    }
+                }
+                if (typeof prefs.volume !== 'undefined' && prefs.volume !== null) {
+                    const el = document.getElementById('volume');
+                    if (el) {
+                        el.value = prefs.volume;
+                        updateVolume(prefs.volume);
+                    }
+                }
+            } catch (e) {
+                console.log('恢复配音偏好失败:', e);
+            }
+        }
+
+        // 若用户尚未保存过配音引擎偏好，则根据全局配置默认优先使用本地 Voice Clone 引擎
+        async function initDefaultVoiceEngineFromConfig(){
+            try{
+                // 如本地已有偏好（包含 engine），则尊重用户选择，不再覆盖
+                try{
+                    const raw = localStorage.getItem('jjyb_voiceover_prefs_v1');
+                    if(raw){
+                        const prefs = JSON.parse(raw) || {};
+                        if(prefs && prefs.engine){
+                            return;
+                        }
+                    }
+                }catch(_e){}
+
+                const res = await fetch('/api/settings/api-config').then(r=>r.json());
+                if(!res || res.code!==0 || !res.data) return;
+                const cfg = res.data;
+                if(!cfg.enable_voice_clone) return;
+                const modelPath = cfg.voice_clone_model_path || '';
+                const exePath = cfg.voice_clone_executable_path || '';
+                if(!modelPath || !exePath) return;
+
+                const cards = Array.from(document.querySelectorAll('.engine-card'));
+                const card = cards.find(c=>{
+                    const oc = c.getAttribute('onclick') || '';
+                    return oc.indexOf("selectEngine('voice-clone'") !== -1;
+                });
+                if(card){
+                    selectEngine('voice-clone', card);
+                }else{
+                    selectedEngine = 'voice-clone';
+                }
+                console.log('🎧 已根据配置默认启用本地 Voice Clone 引擎');
+            }catch(e){
+                console.log('initDefaultVoiceEngineFromConfig 失败:', e);
+            }
+        }
+
+        function updateRate(value) {
+            document.getElementById('rateValue').textContent = (value >= 0 ? '+' : '') + value + '%';
+            saveVoiceoverPreferences();
+        }
+
+        function updatePitch(value) {
+            document.getElementById('pitchValue').textContent = (value >= 0 ? '+' : '') + value + 'Hz';
+            saveVoiceoverPreferences();
+        }
+
+        function updateVolume(value) {
+            document.getElementById('volumeValue').textContent = (value >= 0 ? '+' : '') + value + '%';
+            saveVoiceoverPreferences();
+        }
+
+        async function previewVoice() {
+            if (!selectedVoice) {
+                Notification.warning('请先选择一个音色再进行试听');
+                return;
+            }
+
+            const engine = (selectedEngine || 'edge-tts').toLowerCase();
+            Notification.info('正在生成试听音频...');
+
+            try {
+                let audioUrl = null;
+
+                if (engine === 'voice-clone') {
+                    // Voice Clone 模式：走本地克隆一体化 TTS（底层强制用本地 pyttsx3，避免 edge-tts 403）
+                    const payload = {
+                        text: '这是本地克隆音色试听示例，您好！',
+                        voice_id: selectedVoice || 'zh',
+                        tts_voice: selectedVoice || 'zh',
+                        tts_engine: 'pyttsx3',
+                        max_text_length: 200,
+                        max_total_seconds: 60
+                    };
+
+                    const res = await fetch('/api/voice-clone/tts-generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    }).then(r => r.json());
+
+                    if (res && res.code === 0 && res.data) {
+                        audioUrl = res.data.audio_url || res.data.audio_path;
+                    } else {
+                        const friendlyVc = simplifyBackendError(res && res.msg, '预览失败，请稍后重试。');
+                        Notification.error(friendlyVc);
+                        return;
+                    }
+                } else {
+                    // Edge-TTS / Azure 等在线引擎：沿用原来的 /api/voiceover/preview
+                    let previewEngine = engine;
+                    if (previewEngine === 'azure-tts') {
+                        previewEngine = 'azure';
+                    }
+
+                    const result = await API.post('/api/voiceover/preview', {
+                        voice_id: selectedVoice,
+                        sample_text: '这是音色预览示例，您好！',
+                        engine: previewEngine
+                    });
+
+                    if (result && result.code === 0 && result.data) {
+                        audioUrl = result.data.audio_url || result.data.audio_path;
+                    } else {
+                        const friendly = simplifyBackendError(result && result.msg, '预览失败，请稍后重试。');
+                        Notification.error(friendly);
+                        return;
+                    }
+                }
+
+                if (!audioUrl) {
+                    Notification.error('预览失败：服务未返回音频地址');
+                    return;
+                }
+
+                if (audioUrl.charAt(0) !== '/') {
+                    audioUrl = '/' + audioUrl.replace(/^\/+/, '');
+                }
+
+                const player = document.getElementById('audioPlayer');
+                const audioElement = document.getElementById('audioElement');
+                if (!audioElement) {
+                    Notification.error('预览失败：找不到音频播放器');
+                    return;
+                }
+
+                if (player) player.style.display = 'block';
+                audioElement.src = audioUrl;
+                try { audioElement.load(); } catch (e) { console.log('audio load error:', e); }
+                window.currentAudioUrl = audioUrl;
+
+                try {
+                    await audioElement.play();
+                    Notification.success('试听音频已生成并开始播放');
+                } catch (e) {
+                    console.log('自动播放被阻止:', e);
+                    Notification.success('试听音频已生成，请点击下方播放器手动播放');
+                }
+            } catch (error) {
+                console.error('预览失败:', error);
+                const friendly = simplifyBackendError(error && error.message, '预览失败，请检查网络或稍后重试。');
+                Notification.error(friendly);
+            }
+        }
+
+        function generateVoice() {
+            const text = document.getElementById('voiceText').value;
+
+            if (!text || !text.trim()) {
+                Notification.warning('请输入配音文本');
+                return;
+            }
+
+            if (!selectedVoice) {
+                Notification.warning('请先选择音色');
+                return;
+            }
+
+            const trimmed = text.trim();
+            const len = trimmed.length;
+            const estSeconds = Math.max(1, Math.round(len / 4));
+            const engineLabelMap = {
+                'edge-tts': 'Edge-TTS（推荐）',
+                'azure-tts': 'Azure TTS',
+                'azure': 'Azure TTS',
+                'voice-clone': '本地克隆音色',
+                'voice-pro': 'Voice-Pro 外部引擎',
+                'gtts': 'Google TTS'
+            };
+            const engineLabel = engineLabelMap[selectedEngine] || selectedEngine || 'Edge-TTS（推荐）';
+            const rateVal = document.getElementById('rate').value;
+            const pitchVal = document.getElementById('pitch').value;
+            const volumeVal = document.getElementById('volume').value;
+
+            const summaryLines = [
+                `文本字数：${len} 字（预计朗读约 ${estSeconds} 秒）`,
+                `配音引擎：${engineLabel}`,
+                `音色：${selectedVoice}`,
+                `语速/音量/音高：${rateVal || 0} / ${volumeVal || 0} / ${pitchVal || 0}`
+            ].join('\n');
+
+            const message = `即将生成配音，生成过程可能需要数秒至数十秒。\n\n请确认当前配置：\n${summaryLines}\n\n现在开始生成配音吗？`;
+
+            const doGenerate = () => {
+                generateVoiceInternal();
+            };
+
+            if (window.Notification && Notification.confirm) {
+                Notification.confirm(message, () => { doGenerate(); });
+            } else {
+                if (confirm(message)) {
+                    doGenerate();
+                }
+            }
+        }
+
+        async function generateVoiceInternal() {
+            console.log('🎤 开始生成配音...');
+            
+            const text = document.getElementById('voiceText').value;
+            
+            if (!text || !text.trim()) {
+                Notification.warning('请输入配音文本');
+                return;
+            }
+
+            if (!selectedVoice) {
+                Notification.warning('请先选择音色');
+                return;
+            }
+
+            const rate = document.getElementById('rate').value;
+            const pitch = document.getElementById('pitch').value;
+            const volume = document.getElementById('volume').value;
+
+            console.log(`📝 配音参数: 文本长度=${text.length}, 音色=${selectedVoice}, 引擎=${selectedEngine}`);
+            // 初始化进度条
+            const pgContainer = document.getElementById('voiceProgressContainer');
+            const pgFill = document.getElementById('voiceProgressFill');
+            const pgText = document.getElementById('voiceProgressText');
+            if (pgContainer && pgFill && pgText) {
+                pgContainer.style.display = 'block';
+                pgFill.style.width = '0%';
+                pgFill.textContent = '0%';
+                pgFill.style.background = 'linear-gradient(135deg, #4facfe 0%, #00c9ff 100%)';
+                pgText.textContent = '准备开始：等待提交配音请求...';
+            }
+            
+            // 规范化引擎标识
+            let engine = selectedEngine || 'edge-tts';
+            if (engine === 'azure-tts') {
+                engine = 'azure';
+            }
+            // 本地 Voice Clone 在下方专用分支中通过 TTS+克隆链路处理
+
+            const rateInt = parseInt(rate, 10) || 0;
+            const volumeInt = parseInt(volume, 10) || 0;
+            const pitchInt = parseInt(pitch, 10) || 0;
+
+            // 收集所有高级配置参数
+            const voiceConfig = {
+                engine: engine,
+                voice_id: selectedVoice,
+                // 基本参数：转为 Edge TTS 风格的百分比字符串，例如 +20%
+                rate: (rateInt >= 0 ? '+' : '') + rateInt + '%',
+                volume: (volumeInt >= 0 ? '+' : '') + volumeInt + '%',
+                pitch: pitchInt,
+                
+                // 情感TTS配置
+                emotion_type: document.getElementById('emotionType')?.value || 'neutral',
+                emotion_intensity: document.getElementById('emotionIntensity')?.value || 'moderate',
+                emotion_modeling: document.getElementById('emotionModeling')?.value || 'embedding',
+                emotion_transfer: document.getElementById('emotionTransfer')?.value || 'moderate',
+                
+                // 说话人嵌入配置
+                speaker_embedding_model: document.getElementById('speakerEmbeddingModel')?.value || 'ecapa-tdnn',
+                embedding_dim: parseInt(document.getElementById('embeddingDim')?.value || '256', 10),
+                similarity_metric: document.getElementById('similarityMetric')?.value || 'cosine',
+                embedding_fusion: document.getElementById('embeddingFusion')?.value || 'concat',
+                
+                // 音频特征提取配置
+                audio_feature_type: document.getElementById('audioFeatureType')?.value || 'mel-spectrogram',
+                mel_bins: parseInt(document.getElementById('melBins')?.value || '80', 10),
+                fft_size: parseInt(document.getElementById('fftSize')?.value || '1024', 10),
+                hop_length: parseInt(document.getElementById('hopLength')?.value || '256', 10),
+                
+                // 数据增强配置
+                time_stretch: document.getElementById('timeStretch')?.value || 'moderate',
+                pitch_shift: document.getElementById('pitchShift')?.value || 'semitone-2',
+                noise_level: document.getElementById('noiseLevel')?.value || 'light',
+                volume_variation: document.getElementById('volumeVariation')?.value || 'small',
+                
+                // 技术性能优化
+                inference_mode: document.getElementById('inferenceMode')?.value || 'balanced',
+                compute_device: document.getElementById('computeDevice')?.value || 'auto',
+                batch_size: parseInt(document.getElementById('batchSize')?.value || '8', 10),
+                cache_strategy: document.getElementById('voiceCacheStrategy')?.value || 'smart'
+            };
+
+            const payload = {
+                text: text.trim(),
+                voice_config: voiceConfig
+            };
+
+            // Voice Clone 走专用接口，其余交给 /api/voiceover/generate
+            if (engine === 'voice-clone') {
+                Notification.info('正在使用本地克隆音色生成配音，请稍候...');
+                if (pgFill && pgText) {
+                    pgFill.style.width = '20%';
+                    pgFill.textContent = '20%';
+                    pgText.textContent = '已提交克隆配音请求，正在本地推理生成音频...';
+                }
+
+                try {
+                    const vcBody = {
+                        text: text.trim(),
+                        voice_id: selectedVoice || 'zh',
+                        tts_voice: selectedVoice || 'zh',
+                        tts_engine: 'pyttsx3'
+                    };
+
+                    const result = await fetch('/api/voice-clone/tts-generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(vcBody)
+                    }).then(res => res.json());
+                    const vcData = result && result.data;
+                    let vcUrl = vcData && (vcData.audio_url || vcData.audio_path);
+
+                    if (result.code === 0 && vcUrl) {
+                        if (vcUrl.charAt(0) !== '/') {
+                            vcUrl = '/' + vcUrl;
+                        }
+                        
+                        // 保存克隆音色配音记录到历史
+                        try {
+                            const record = {
+                                text: text.trim(),
+                                voice_id: selectedVoice,
+                                voice_name: getSelectedVoiceName() + ' (克隆)',
+                                engine: 'voice-clone',
+                                rate: '+0%',
+                                pitch: 0,
+                                volume: '+0%',
+                                audio_path: vcUrl,
+                                emotion_type: 'neutral',
+                                emotion_intensity: 'moderate'
+                            };
+                            saveVoiceoverRecord(record);
+                            console.log('✅ 克隆配音记录已保存到历史');
+                        } catch (e) {
+                            console.error('保存克隆配音记录失败:', e);
+                        }
+                        
+                        document.getElementById('audioPlayer').style.display = 'block';
+                        const audioElement = document.getElementById('audioElement');
+                        audioElement.src = vcUrl;
+                        try { audioElement.load(); } catch (e) { console.log('audio load error:', e); }
+                        window.currentAudioUrl = vcUrl;
+                        Notification.success('克隆音色配音生成成功！');
+                        if (pgFill && pgText) {
+                            pgFill.style.width = '100%';
+                            pgFill.textContent = '100%';
+                            pgText.textContent = '克隆音色配音生成完成，已加载到下方播放器。';
+                        }
+                        try { await audioElement.play(); } catch (e) { console.log('自动播放被阻止:', e); }
+                    } else {
+                        if (result.code === 0 && !vcUrl) {
+                            Notification.error('克隆配音生成失败：服务未返回音频地址');
+                        }
+                        console.error('❌ 克隆配音生成失败:', result.msg);
+                        const friendly = simplifyBackendError(result && result.msg, '生成失败，请稍后重试或更换配音引擎。');
+                        Notification.error(friendly);
+                        if (pgFill && pgText) {
+                            pgFill.style.width = '100%';
+                            pgFill.textContent = '失败';
+                            pgFill.style.background = 'linear-gradient(135deg, #f97373 0%, #ef4444 100%)';
+                            pgText.textContent = '克隆配音生成失败，请检查日志或稍后重试。';
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ 克隆配音请求失败:', error);
+                    const friendly = simplifyBackendError(error && error.message, '生成失败，请检查网络或稍后重试。');
+                    Notification.error(friendly);
+                    if (pgFill && pgText) {
+                        pgFill.style.width = '100%';
+                        pgFill.textContent = '失败';
+                        pgFill.style.background = 'linear-gradient(135deg, #f97373 0%, #ef4444 100%)';
+                        pgText.textContent = '克隆配音请求失败，请检查网络或稍后重试。';
+                    }
+                }
+
+                return;
+            }
+
+            // 非克隆引擎：Edge / Azure / gTTS
+            Notification.info('正在生成配音，请稍候...');
+            if (pgFill && pgText) {
+                pgFill.style.width = '25%';
+                pgFill.textContent = '25%';
+                pgText.textContent = '已提交配音请求，正在合成语音...';
+            }
+
+            try {
+                const result = await fetch('/api/voiceover/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                }).then(res => res.json());
+
+                if (result.code === 0 && result.data) {
+                    console.log('✅ 配音生成成功:', result.data);
+                    
+                    // 保存配音记录到历史
+                    try {
+                        const record = {
+                            text: text.trim(),
+                            voice_id: selectedVoice,
+                            voice_name: getSelectedVoiceName(),
+                            engine: engine,
+                            rate: voiceConfig.rate,
+                            pitch: voiceConfig.pitch,
+                            volume: voiceConfig.volume,
+                            audio_path: result.data.audio_url || result.data.audio_path,
+                            emotion_type: voiceConfig.emotion_type,
+                            emotion_intensity: voiceConfig.emotion_intensity
+                        };
+                        saveVoiceoverRecord(record);
+                        console.log('✅ 配音记录已保存到历史');
+                    } catch (e) {
+                        console.error('保存配音记录失败:', e);
+                    }
+                    
+                    // 显示音频播放器
+                    document.getElementById('audioPlayer').style.display = 'block';
+                    
+                    // 设置音频源
+                    const audioElement = document.getElementById('audioElement');
+                    let outUrl = result.data.audio_url || result.data.audio_path;
+                    if (!outUrl) {
+                        Notification.error('配音生成失败：服务未返回音频地址');
+                        if (pgFill && pgText) {
+                            pgFill.style.width = '100%';
+                            pgFill.textContent = '失败';
+                            pgFill.style.background = 'linear-gradient(135deg, #f97373 0%, #ef4444 100%)';
+                            pgText.textContent = '配音生成失败：服务未返回音频地址。';
+                        }
+                        return;
+                    }
+                    if (outUrl.charAt(0) !== '/') {
+                        outUrl = '/' + outUrl;
+                    }
+                    audioElement.src = outUrl;
+                    try { audioElement.load(); } catch (e) { console.log('audio load error:', e); }
+                    
+                    // 保存音频URL供下载使用
+                    window.currentAudioUrl = outUrl;
+                    
+                    Notification.success(`配音生成成功！时长: ${result.data.duration || '未知'}秒`);
+                    Notification.info('音频已加载到下方播放器，建议点击“下载音频”保存到本地。');
+                    if (pgFill && pgText) {
+                        pgFill.style.width = '100%';
+                        pgFill.textContent = '100%';
+                        pgText.textContent = '配音生成完成，已加载到下方播放器。';
+                    }
+                    
+                    // 自动播放
+                    audioElement.play().catch(e => {
+                        console.log('自动播放被阻止:', e);
+                    });
+                } else {
+                    console.error('❌ 配音生成失败:', result.msg);
+                    const friendly = simplifyBackendError(result && result.msg, '生成失败，请稍后重试或更换配音引擎。');
+                    Notification.error(friendly);
+                    Notification.info('您输入的文本和参数仍然保留在当前页面，修改后可直接重新生成。');
+                    if (pgFill && pgText) {
+                        pgFill.style.width = '100%';
+                        pgFill.textContent = '失败';
+                        pgFill.style.background = 'linear-gradient(135deg, #f97373 0%, #ef4444 100%)';
+                        pgText.textContent = '配音生成失败，请检查参数或稍后重试。';
+                    }
+                }
+            } catch (error) {
+                console.error('❌ 配音请求失败:', error);
+                const friendly = simplifyBackendError(error && error.message, '生成失败，请检查网络或稍后重试。');
+                Notification.error(friendly);
+                Notification.info('您输入的文本和参数仍然保留在当前页面，检查网络后可直接重新生成。');
+                if (pgFill && pgText) {
+                    pgFill.style.width = '100%';
+                    pgFill.textContent = '失败';
+                    pgFill.style.background = 'linear-gradient(135deg, #f97373 0%, #ef4444 100%)';
+                    pgText.textContent = '配音请求失败，请检查网络或稍后重试。';
+                }
+            }
+        }
+
+        async function generateBatchVoice() {
+            const textarea = document.getElementById('batchVoiceText');
+            const raw = textarea ? textarea.value : '';
+            const lines = (raw || '').split('\n').map(t => t.trim()).filter(t => t);
+            if (!lines.length) {
+                Notification.warning('请在“批量配音”文本框中每行输入一段文案');
+                return;
+            }
+            if (!selectedVoice) {
+                Notification.warning('请先选择音色');
+                return;
+            }
+            let engine = selectedEngine || 'edge-tts';
+            if (engine === 'azure-tts') {
+                engine = 'azure';
+            }
+            if (engine === 'voice-clone') {
+                Notification.warning('当前批量配音暂不支持本地克隆音色，请先切换到 Edge / Azure / gTTS 等引擎');
+                return;
+            }
+            const rateEl = document.getElementById('rate');
+            const pitchEl = document.getElementById('pitch');
+            const volumeEl = document.getElementById('volume');
+            const rateInt = parseInt(rateEl && rateEl.value, 10) || 0;
+            const pitchInt = parseInt(pitchEl && pitchEl.value, 10) || 0;
+            const volumeInt = parseInt(volumeEl && volumeEl.value, 10) || 0;
+            
+            // 收集所有高级配置参数（与单次生成保持一致）
+            const voiceConfig = {
+                engine: engine,
+                voice_id: selectedVoice,
+                rate: (rateInt >= 0 ? '+' : '') + rateInt + '%',
+                volume: (volumeInt >= 0 ? '+' : '') + volumeInt + '%',
+                pitch: pitchInt,
+                
+                // 情感TTS配置
+                emotion_type: document.getElementById('emotionType')?.value || 'neutral',
+                emotion_intensity: document.getElementById('emotionIntensity')?.value || 'moderate',
+                emotion_modeling: document.getElementById('emotionModeling')?.value || 'embedding',
+                emotion_transfer: document.getElementById('emotionTransfer')?.value || 'moderate',
+                
+                // 说话人嵌入配置
+                speaker_embedding_model: document.getElementById('speakerEmbeddingModel')?.value || 'ecapa-tdnn',
+                embedding_dim: parseInt(document.getElementById('embeddingDim')?.value || '256', 10),
+                similarity_metric: document.getElementById('similarityMetric')?.value || 'cosine',
+                embedding_fusion: document.getElementById('embeddingFusion')?.value || 'concat',
+                
+                // 音频特征提取配置
+                audio_feature_type: document.getElementById('audioFeatureType')?.value || 'mel-spectrogram',
+                mel_bins: parseInt(document.getElementById('melBins')?.value || '80', 10),
+                fft_size: parseInt(document.getElementById('fftSize')?.value || '1024', 10),
+                hop_length: parseInt(document.getElementById('hopLength')?.value || '256', 10),
+                
+                // 数据增强配置
+                time_stretch: document.getElementById('timeStretch')?.value || 'moderate',
+                pitch_shift: document.getElementById('pitchShift')?.value || 'semitone-2',
+                noise_level: document.getElementById('noiseLevel')?.value || 'light',
+                volume_variation: document.getElementById('volumeVariation')?.value || 'small',
+                
+                // 技术性能优化
+                inference_mode: document.getElementById('inferenceMode')?.value || 'balanced',
+                compute_device: document.getElementById('computeDevice')?.value || 'auto',
+                batch_size: parseInt(document.getElementById('batchSize')?.value || '8', 10),
+                cache_strategy: document.getElementById('voiceCacheStrategy')?.value || 'smart'
+            };
+            Notification.info(`正在批量生成配音，共 ${lines.length} 段，请稍候...`);
+            const container = document.getElementById('batchVoiceResults');
+            const list = document.getElementById('batchVoiceResultsList');
+            try {
+                const result = await fetch('/api/voiceover/batch-generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ texts: lines, voice_config: voiceConfig })
+                }).then(res => res.json());
+                if (!result || result.code !== 0 || !result.data) {
+                    console.error('批量配音生成失败:', result && result.msg);
+                    const friendly = simplifyBackendError(result && result.msg, '批量生成失败，请稍后重试。');
+                    Notification.error(friendly);
+                    if (container) container.style.display = 'none';
+                    return;
+                }
+                const paths = result.data.audio_paths || [];
+                const urls = result.data.audio_urls || [];
+                
+                // 保存批量配音记录到历史
+                try {
+                    lines.forEach((text, idx) => {
+                        const audioPath = urls[idx] || paths[idx];
+                        if (audioPath) {
+                            const record = {
+                                text: text.trim(),
+                                voice_id: selectedVoice,
+                                voice_name: getSelectedVoiceName(),
+                                engine: engine,
+                                rate: voiceConfig.rate,
+                                pitch: voiceConfig.pitch,
+                                volume: voiceConfig.volume,
+                                audio_path: audioPath,
+                                emotion_type: voiceConfig.emotion_type || 'neutral',
+                                emotion_intensity: voiceConfig.emotion_intensity || 'moderate'
+                            };
+                            saveVoiceoverRecord(record);
+                        }
+                    });
+                    console.log('✅ 批量配音记录已保存到历史，共 ' + lines.length + ' 条');
+                } catch (e) {
+                    console.error('保存批量配音记录失败:', e);
+                }
+                
+                if (container) container.style.display = 'block';
+                if (list) {
+                    list.innerHTML = '';
+                    lines.forEach((text, idx) => {
+                        const rawUrl = urls[idx] || paths[idx] || null;
+                        let safeUrl = rawUrl;
+                        if (safeUrl && safeUrl.charAt(0) !== '/') {
+                            safeUrl = '/' + safeUrl;
+                        }
+                        const shortText = text.length > 40 ? text.slice(0, 40) + '...' : text;
+                        const row = document.createElement('div');
+                        row.style.display = 'flex';
+                        row.style.alignItems = 'center';
+                        row.style.justifyContent = 'space-between';
+                        row.style.gap = '8px';
+                        row.style.padding = '4px 0';
+                        const left = document.createElement('div');
+                        left.style.flex = '1';
+                        left.style.minWidth = '0';
+                        left.textContent = `${idx + 1}. ${shortText}`;
+                        const right = document.createElement('div');
+                        right.style.display = 'flex';
+                        right.style.gap = '6px';
+                        if (safeUrl) {
+                            const playBtn = document.createElement('button');
+                            playBtn.className = 'btn btn-secondary';
+                            playBtn.style.padding = '4px 8px';
+                            playBtn.style.fontSize = '12px';
+                            playBtn.textContent = '试听';
+                            playBtn.onclick = () => {
+                                const audioElement = document.getElementById('audioElement');
+                                const player = document.getElementById('audioPlayer');
+                                if (player) player.style.display = 'block';
+                                if (audioElement) {
+                                    audioElement.src = safeUrl;
+                                    window.currentAudioUrl = safeUrl;
+                                    audioElement.play().catch(e => console.log('自动播放被阻止:', e));
+                                }
+                            };
+                            const dlBtn = document.createElement('button');
+                            dlBtn.className = 'btn btn-secondary';
+                            dlBtn.style.padding = '4px 8px';
+                            dlBtn.style.fontSize = '12px';
+                            dlBtn.textContent = '下载';
+                            dlBtn.onclick = () => {
+                                window.currentAudioUrl = safeUrl;
+                                downloadAudio();
+                            };
+                            right.appendChild(playBtn);
+                            right.appendChild(dlBtn);
+                        } else {
+                            const failTag = document.createElement('span');
+                            failTag.style.fontSize = '12px';
+                            failTag.style.color = '#b91c1c';
+                            failTag.textContent = '生成失败';
+                            right.appendChild(failTag);
+                        }
+                        row.appendChild(left);
+                        row.appendChild(right);
+                        list.appendChild(row);
+                    });
+                }
+                Notification.success('批量配音生成完成');
+            } catch (error) {
+                console.error('批量配音请求失败:', error);
+                const friendly = simplifyBackendError(error && error.message, '批量生成失败，请检查网络或稍后重试。');
+                Notification.error(friendly);
+                if (container) container.style.display = 'none';
+            }
+        }
+
+        function downloadAudio() {
+            console.log('💾 开始下载音频...');
+            
+            if (!window.currentAudioUrl) {
+                Notification.warning('暂无可下载的音频，请先生成配音');
+                return;
+            }
+
+            try {
+                // 创建下载链接
+                const a = document.createElement('a');
+                const url = window.currentAudioUrl;
+                a.href = url;
+                // 根据当前URL推导文件名和扩展名，避免强制使用.mp3
+                const cleanPath = url.split('#')[0].split('?')[0];
+                const baseName = cleanPath.substring(cleanPath.lastIndexOf('/') + 1) || `audio_${Date.now()}`;
+                a.download = baseName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                console.log('✅ 开始下载音频');
+                Notification.success('开始下载音频文件');
+            } catch (error) {
+                console.error('❌ 下载失败:', error);
+                const msg = (error && error.message) ? ('下载失败: ' + error.message) : '下载失败，请稍后重试。';
+                Notification.error(msg);
+            }
+        }
+    </script>
+    <style>
+        .cleanup-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999}
+        .cleanup-dialog{width:560px;max-width:92vw;background:#fff;border-radius:16px;box-shadow:0 25px 80px rgba(0,0,0,0.35);overflow:hidden}
+        .cleanup-header{padding:18px 20px;background:linear-gradient(135deg, #0ea5e9 0%, #22d3ee 100%);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+        .cleanup-body{padding:18px 20px}
+        .cleanup-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+        .cleanup-chip{border:2px solid #e5e7eb;border-radius:10px;padding:10px 12px;text-align:center;cursor:pointer;user-select:none;transition:.2s}
+        .cleanup-chip.active{border-color:#0ea5e9;background:linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(34,211,238,0.08) 100%)}
+        .cleanup-warning{margin:8px 0 0 0;font-size:12px;color:#ef4444}
+        .cleanup-preview{max-height:180px;overflow:auto;border:1px dashed #e5e7eb;border-radius:10px;padding:10px;margin-top:10px;font-size:12px;color:#444;background:#fafafa}
+        .cleanup-range-row{margin-top:8px;font-size:12px;color:#4b5563}
+        .cleanup-range-row label{margin-right:10px;cursor:pointer}
+        .cleanup-footer{display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;background:#f8fafc;border-top:1px solid #e5e7eb}
+        .btn-minor{padding:10px 14px;border-radius:8px;border:2px solid #e5e7eb;background:#fff;cursor:pointer;font-weight:600}
+        .btn-accent{padding:10px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#0ea5e9 0%, #22d3ee 100%);color:#fff;cursor:pointer;font-weight:700}
+    </style>
+    <div id="cleanupOverlay" class="cleanup-overlay">
+        <div class="cleanup-dialog">
+            <div class="cleanup-header">
+                <span>清理产物</span>
+                <button class="btn-minor" onclick="closeCleanupModal()" style="border-color:rgba(255,255,255,0.6);color:#fff;background:transparent">关闭</button>
+            </div>
+            <div class="cleanup-body">
+                <div class="cleanup-grid">
+                    <div class="cleanup-chip active" data-key="cache" onclick="toggleCleanupChip(this)">缓存</div>
+                    <div class="cleanup-chip active" data-key="scripts" onclick="toggleCleanupChip(this)">文案脚本</div>
+                    <div class="cleanup-chip active" data-key="audio" onclick="toggleCleanupChip(this)">音频</div>
+                    <div class="cleanup-chip active" data-key="video" onclick="toggleCleanupChip(this)">视频</div>
+                    <div class="cleanup-chip active" data-key="frames" onclick="toggleCleanupChip(this)">画面帧</div>
+                    <div class="cleanup-chip active" data-key="subtitles" onclick="toggleCleanupChip(this)">字幕</div>
+                    <div class="cleanup-chip" data-key="source_audio" onclick="toggleCleanupChip(this)" style="border-color:#ef4444;color:#ef4444">源音频</div>
+                    <div class="cleanup-chip" data-key="source_video" onclick="toggleCleanupChip(this)" style="border-color:#ef4444;color:#ef4444">源视频</div>
+                </div>
+                <div class="cleanup-range-row">
+                    <span>时间范围：</span>
+                    <label><input type="radio" name="cleanupRange" value="1"> 最近1天</label>
+                    <label><input type="radio" name="cleanupRange" value="7"> 最近7天</label>
+                    <label><input type="radio" name="cleanupRange" value="30"> 最近30天</label>
+                    <label><input type="radio" name="cleanupRange" value="0" checked> 全部</label>
+                </div>
+                <div class="cleanup-chip" data-key="final" onclick="toggleCleanupChip(this)" style="display:inline-block">最终导出与成片（谨慎）</div>
+                <div class="cleanup-warning">注意：勾选"最终导出与成片"将删除 output/ 与 exports/ 下的最终文件。</div>
+                <div class="cleanup-warning" style="margin-top:4px">⚠️ 源音频、源视频：这是您上传的原始素材，删除后无法恢复！</div>
+                <div id="cleanupPreview" class="cleanup-preview" style="display:none"></div>
+            </div>
+            <div class="cleanup-footer">
+                <button class="btn-minor" onclick="previewCleanup()">预览</button>
+                <button class="btn-accent" onclick="executeCleanup()">执行清理</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let cleanupTarget = 'voiceover';
+        function openCleanupModal(target, accent){
+            cleanupTarget = target || 'voiceover';
+            const overlay = document.getElementById('cleanupOverlay');
+            const header = overlay.querySelector('.cleanup-header');
+            const accentBg = accent || '#0ea5e9';
+            header.style.background = `linear-gradient(135deg, ${accentBg} 0%, ${accentBg} 100%)`;
+            const titleEl = header.querySelector('span');
+            if (titleEl) {
+                if (cleanupTarget === 'commentary') titleEl.textContent = '清理原创解说产物';
+                else if (cleanupTarget === 'remix') titleEl.textContent = '清理混剪产物';
+                else if (cleanupTarget === 'voiceover') titleEl.textContent = '清理AI配音产物';
+                else titleEl.textContent = '清理产物';
+            }
+            // reset toggles
+            const defaults = {
+                commentary: ['cache','scripts','audio','frames'],
+                remix: ['cache','video','frames'],
+                voiceover: ['cache','scripts','audio']
+            };
+            const activeKeys = defaults[cleanupTarget] || ['cache','scripts','audio','video','frames','subtitles'];
+            overlay.querySelectorAll('.cleanup-chip').forEach(ch=>{
+                const key = ch.dataset.key;
+                if (key === 'final') {
+                    ch.classList.remove('active');
+                    return;
+                }
+                if (activeKeys.indexOf(key) !== -1) ch.classList.add('active'); else ch.classList.remove('active');
+            });
+            document.getElementById('cleanupPreview').style.display='none';
+            document.getElementById('cleanupPreview').innerHTML='';
+            overlay.style.display='flex';
+        }
+        function closeCleanupModal(){ document.getElementById('cleanupOverlay').style.display='none'; }
+        function toggleCleanupChip(el){ el.classList.toggle('active'); }
+        function getCleanupAgeDays(){
+            const overlay = document.getElementById('cleanupOverlay');
+            if (!overlay) return null;
+            const checked = overlay.querySelector('input[name="cleanupRange"]:checked');
+            if (!checked) return null;
+            const v = parseInt(checked.value, 10);
+            if (!v || isNaN(v) || v <= 0) return null;
+            return v;
+        }
+        function gatherIncludes(){
+            const map = {cache:false,scripts:false,audio:false,video:false,frames:false,subtitles:false,final:false};
+            document.getElementById('cleanupOverlay').querySelectorAll('.cleanup-chip').forEach(ch=>{ if(ch.classList.contains('active')) map[ch.dataset.key]=true; });
+            return map;
+        }
+        async function requestCleanup(target, includes, dryRun){
+            const ageDays = getCleanupAgeDays();
+            const body = {target, include: includes, dry_run: !!dryRun};
+            if (ageDays) body.max_age_days = ageDays;
+            return fetch('/api/cleanup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+        }
+        async function previewCleanup(){
+            const includes = gatherIncludes();
+            const res = await requestCleanup(cleanupTarget, includes, true);
+            if(!res||res.code!==0){ if(window.Notification&&Notification.error) Notification.error('预览失败'); else alert('预览失败'); return; }
+            const mb = (res.data.bytes/1024/1024).toFixed(2);
+            const list = (res.data.preview||[]).slice(0,50).map(p=>`<div>${p}</div>`).join('');
+            const box = document.getElementById('cleanupPreview');
+            box.style.display='block';
+            box.innerHTML = `<div>将删除 ${res.data.count} 项，约 ${mb} MB：</div>${list}`;
+        }
+        function executeCleanup(){
+            const includes = gatherIncludes();
+            const hasFinal = !!includes.final;
+            const hasSourceAudio = !!includes.source_audio;
+            const hasSourceVideo = !!includes.source_video;
+            
+            let message = '';
+            if (hasFinal) {
+                message = '确定要清理所选产物，并同时删除最终导出与成片吗？这将删除 output/ 与 exports/ 下的最终文件，操作不可恢复。';
+            } else if (hasSourceAudio || hasSourceVideo) {
+                const sourceTypes = [];
+                if (hasSourceAudio) sourceTypes.push('源音频');
+                if (hasSourceVideo) sourceTypes.push('源视频');
+                message = `⚠️ 警告：您选择了清理${sourceTypes.join('和')}！\n\n这些是您上传的原始素材文件，删除后将无法恢复！\n\n确定要继续吗？`;
+            } else {
+                message = '确定要清理所选产物吗？缓存和中间文件删除后将无法恢复。';
+            }
+
+            const doCleanup = async () => {
+                const res = await requestCleanup(cleanupTarget, includes, false);
+                if(res&&res.code===0){
+                    const freed=(res.data.bytes_freed/1024/1024).toFixed(2);
+                    if(window.Notification&&Notification.success) Notification.success(`清理完成：删除${res.data.deleted}项，释放${freed}MB`); else alert(`清理完成：删除${res.data.deleted}项，释放${freed}MB`);
+                    closeCleanupModal();
+                }else{
+                    if(window.Notification&&Notification.error) Notification.error(res?.msg||'清理失败'); else alert('清理失败');
+                }
+            };
+
+            if (window.Notification && Notification.confirm) {
+                Notification.confirm(message, () => { doCleanup(); });
+            } else {
+                if (confirm(message)) {
+                    doCleanup();
+                }
+            }
+        }
+        function cleanupVoiceover(){ openCleanupModal('voiceover','#0ea5e9'); }
+    </script>
+</body>
+</html>
