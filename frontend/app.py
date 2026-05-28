@@ -14,8 +14,6 @@ AIJian v2.0 - 智能视频剪辑工具
 
 import os
 import sys
-import logging
-from logging.handlers import RotatingFileHandler
 import yaml
 import threading
 import json
@@ -80,37 +78,6 @@ except Exception:
 APP_DEBUG = (str(os.getenv('APP_DEBUG') or (APP_CFG.get('app') or {}).get('debug', False))).lower() in ('1', 'true', 'yes', 'y')
 UI_HOST = '127.0.0.1' if APP_HOST in ('0.0.0.0', '::') else APP_HOST
 
-# 日志配置
-LOG_CFG = (APP_CFG.get('logging') or {})
-LOG_LEVEL_STR = str(LOG_CFG.get('level', 'INFO')).upper()
-LOG_LEVEL = getattr(logging, LOG_LEVEL_STR, logging.INFO)
-LOG_FILE_REL = LOG_CFG.get('file', 'logs/app.log')
-LOG_FILE_PATH = (BASE_DIR / LOG_FILE_REL) if not Path(LOG_FILE_REL).is_absolute() else Path(LOG_FILE_REL)
-try:
-    LOG_MAX_BYTES = int(LOG_CFG.get('max_size', 10 * 1024 * 1024))
-except Exception:
-    LOG_MAX_BYTES = 10 * 1024 * 1024
-try:
-    LOG_BACKUP = int(LOG_CFG.get('backup_count', 5))
-except Exception:
-    LOG_BACKUP = 5
-    logger_msg = f'⚠️  后端模块不可用，使用内置功能: {e}'
-
-# 配置日志（读取自 config/config.yaml，可用环境变量覆盖）
-LOG_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-logging.basicConfig(
-    level=LOG_LEVEL,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        RotatingFileHandler(str(LOG_FILE_PATH), maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP, encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
-
-logger = logging.getLogger('AIJian')
-logger.info(logger_msg)
-
 # temp/outputs 根目录（优先使用 backend.config.paths.OUTPUTS_DIR）
 try:
     from backend.config.paths import OUTPUTS_DIR as BACKEND_OUTPUTS_DIR
@@ -168,7 +135,7 @@ socketio = SocketIO(
 for directory in ['uploads', 'static/draft', 'database', 'logs', 'output', 'models', 'temp']:
     (BASE_DIR / directory).mkdir(parents=True, exist_ok=True)
 
-logger.info('✅ Flask应用初始化完成')
+print('✅ Flask应用初始化完成')
 
 # ==================== 数据库管理器（完整版）====================
 class DatabaseManager:
@@ -206,7 +173,7 @@ class DatabaseManager:
         self.db_path = resolved or str(BASE_DIR / 'database' / 'jjyb_ai.db')
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self.init_database()
-        logger.info(f'✅ 数据库管理器初始化完成: {self.db_path}')
+        print(f'✅ 数据库管理器初始化完成: {self.db_path}')
 
     def get_connection(self):
         """获取数据库连接"""
@@ -243,12 +210,12 @@ class DatabaseManager:
                 columns = [row[1] for row in cursor.fetchall()]
                 if 'deleted_at' not in columns:
                     cursor.execute("ALTER TABLE projects ADD COLUMN deleted_at TIMESTAMP")
-                    logger.info('✅ 已为 projects 表添加 deleted_at 字段')
+                    print('✅ 已为 projects 表添加 deleted_at 字段')
                 if 'is_deleted' not in columns:
                     cursor.execute("ALTER TABLE projects ADD COLUMN is_deleted INTEGER DEFAULT 0")
-                    logger.info('✅ 已为 projects 表添加 is_deleted 字段')
+                    print('✅ 已为 projects 表添加 is_deleted 字段')
             except Exception as e:
-                logger.warning(f'⚠️ 检查/添加 projects 软删除字段失败: {e}')
+                print(f'⚠️ 检查/添加 projects 软删除字段失败: {e}')
 
             # 创建素材表 - 完整字段
             cursor.execute('''
@@ -316,10 +283,10 @@ class DatabaseManager:
             ''')
 
             conn.commit()
-            logger.info('✅ 数据库表初始化完成')
+            print('✅ 数据库表初始化完成')
 
         except Exception as e:
-            logger.error(f'❗ 数据库初始化失败: {e}', exc_info=True)
+            print(f'❗ 数据库初始化失败: {e}')
             conn.rollback()
             raise
         finally:
@@ -359,7 +326,7 @@ class DatabaseManager:
                 (project_id, name, project_type, description, config, 'draft')
             )
             conn.commit()
-            logger.info(f'✅ 项目创建成功: {project_id} - {name}')
+            print(f'✅ 项目创建成功: {project_id} - {name}')
 
             return {
                 'id': project_id,
@@ -371,7 +338,7 @@ class DatabaseManager:
                 'created_at': datetime.now().isoformat()
             }
         except Exception as e:
-            logger.error(f'❗ 项目创建失败: {e}', exc_info=True)
+            print(f'❗ 项目创建失败: {e}')
             conn.rollback()
             raise
         finally:
@@ -413,10 +380,10 @@ class DatabaseManager:
                     except:
                         project['config'] = {}
 
-            logger.info(f'✅ 获取项目列表成功: {len(projects)}个项目')
+            print(f'✅ 获取项目列表成功: {len(projects)}个项目')
             return projects
         except Exception as e:
-            logger.error(f'❗ 获取项目列表失败: {e}', exc_info=True)
+            print(f'❗ 获取项目列表失败: {e}')
             return []
         finally:
             conn.close()
@@ -465,13 +432,13 @@ class DatabaseManager:
                 )
                 project['tasks'] = [dict(r) for r in cursor.fetchall()]
 
-                logger.info(f'✅ 获取项目详情成功: {project_id}')
+                print(f'✅ 获取项目详情成功: {project_id}')
                 return project
             else:
-                logger.warning(f'⚠️  项目不存在: {project_id}')
+                print(f'⚠️  项目不存在: {project_id}')
                 return None
         except Exception as e:
-            logger.error(f'❗ 获取项目详情失败: {e}', exc_info=True)
+            print(f'❗ 获取项目详情失败: {e}')
             return None
         finally:
             conn.close()
@@ -512,11 +479,11 @@ class DatabaseManager:
                 cursor.execute(sql, params)
                 conn.commit()
 
-                logger.info(f'✅ 项目更新成功: {project_id}')
+                print(f'✅ 项目更新成功: {project_id}')
 
             return self.get_project(project_id)
         except Exception as e:
-            logger.error(f'❗ 项目更新失败: {e}', exc_info=True)
+            print(f'❗ 项目更新失败: {e}')
             conn.rollback()
             return None
         finally:
@@ -539,7 +506,7 @@ class DatabaseManager:
                 cursor.execute('DELETE FROM projects WHERE id = ?', (project_id,))
                 cursor.execute('DELETE FROM materials WHERE project_id = ?', (project_id,))
                 cursor.execute('DELETE FROM tasks WHERE project_id = ?', (project_id,))
-                logger.info(f'✅ 项目硬删除成功: {project_id}')
+                print(f'✅ 项目硬删除成功: {project_id}')
             else:
                 # 软删除：标记为已删除
                 cursor.execute(
@@ -548,11 +515,11 @@ class DatabaseManager:
                        WHERE id = ?''',
                     (project_id,)
                 )
-                logger.info(f'✅ 项目软删除成功: {project_id}')
+                print(f'✅ 项目软删除成功: {project_id}')
 
             conn.commit()
         except Exception as e:
-            logger.error(f'❗ 项目删除失败: {e}', exc_info=True)
+            print(f'❗ 项目删除失败: {e}')
             conn.rollback()
             raise
         finally:
@@ -600,7 +567,7 @@ class DatabaseManager:
             )
             conn.commit()
 
-            logger.info(f'✅ 素材创建成功: {material_id} - {name}')
+            print(f'✅ 素材创建成功: {material_id} - {name}')
 
             return {
                 'id': material_id,
@@ -618,7 +585,7 @@ class DatabaseManager:
                 'created_at': datetime.now().isoformat()
             }
         except Exception as e:
-            logger.error(f'❗ 素材创建失败: {e}', exc_info=True)
+            print(f'❗ 素材创建失败: {e}')
             conn.rollback()
             raise
         finally:
@@ -663,10 +630,10 @@ class DatabaseManager:
                     except:
                         material['metadata'] = {}
 
-            logger.info(f'✅ 获取素材列表成功: {len(materials)}个素材')
+            print(f'✅ 获取素材列表成功: {len(materials)}个素材')
             return materials
         except Exception as e:
-            logger.error(f'❗ 获取素材列表失败: {e}', exc_info=True)
+            print(f'❗ 获取素材列表失败: {e}')
             return []
         finally:
             conn.close()
@@ -694,9 +661,9 @@ class DatabaseManager:
                  json.dumps(input_data or {}, ensure_ascii=False))
             )
             conn.commit()
-            logger.info(f'✅ 任务创建成功: {task_id} - {task_type}')
+            print(f'✅ 任务创建成功: {task_id} - {task_type}')
         except Exception as e:
-            logger.error(f'❗ 任务创建失败: {e}', exc_info=True)
+            print(f'❗ 任务创建失败: {e}')
             conn.rollback()
             raise
         finally:
@@ -739,9 +706,9 @@ class DatabaseManager:
                 params
             )
             conn.commit()
-            logger.info(f'✅ 任务状态更新: {task_id} -> {status}')
+            print(f'✅ 任务状态更新: {task_id} -> {status}')
         except Exception as e:
-            logger.error(f'❗ 任务状态更新失败: {e}', exc_info=True)
+            print(f'❗ 任务状态更新失败: {e}')
             conn.rollback()
         finally:
             conn.close()
@@ -764,7 +731,7 @@ class DatabaseManager:
             )
             conn.commit()
         except Exception as e:
-            logger.error(f'❗ 任务进度更新失败: {e}', exc_info=True)
+            print(f'❗ 任务进度更新失败: {e}')
             conn.rollback()
         finally:
             conn.close()
@@ -812,10 +779,10 @@ class DatabaseManager:
                     except:
                         task['output_data'] = {}
 
-            logger.info(f'✅ 获取任务列表成功: {len(tasks)}个任务')
+            print(f'✅ 获取任务列表成功: {len(tasks)}个任务')
             return tasks
         except Exception as e:
-            logger.error(f'❗ 获取任务列表失败: {e}', exc_info=True)
+            print(f'❗ 获取任务列表失败: {e}')
             return []
         finally:
             conn.close()
@@ -855,7 +822,7 @@ class DatabaseManager:
                 return task
             return None
         except Exception as e:
-            logger.error(f'❗ 获取任务详情失败: {e}', exc_info=True)
+            print(f'❗ 获取任务详情失败: {e}')
             return None
         finally:
             conn.close()
@@ -891,100 +858,99 @@ if BACKEND_AVAILABLE:
         try:
             from backend.api.commentary_routes_enhanced import register_commentary_routes_enhanced
             register_commentary_routes_enhanced(app, backend_db_manager, backend_task_service, socketio)
-            logger.info('✅ 增强版原创解说路由注册成功')
+            print('✅ 增强版原创解说路由注册成功')
         except Exception as e:
-            logger.warning(f'⚠️ 增强版原创解说路由注册失败: {e}')
+            print(f'⚠️ 增强版原创解说路由注册失败: {e}')
 
         # 注册文件上传路由
         try:
             from backend.api.upload_routes import register_upload_routes
             register_upload_routes(app)
-            logger.info('✅ 文件上传路由注册成功')
+            print('✅ 文件上传路由注册成功')
         except Exception as e:
-            logger.warning(f'⚠️ 文件上传路由注册失败: {e}')
+            print(f'⚠️ 文件上传路由注册失败: {e}')
 
         # 注册配置管理路由
         try:
             from backend.api.config_routes import register_config_routes
             register_config_routes(app)
-            logger.info('✅ 配置管理路由注册成功')
+            print('✅ 配置管理路由注册成功')
         except Exception as e:
-            logger.warning(f'⚠️ 配置管理路由注册失败: {e}')
+            print(f'⚠️ 配置管理路由注册失败: {e}')
 
         # 注册测试API路由
         try:
             from backend.api.test_api import register_test_routes
             from backend.config.ai_config import get_config_manager
             register_test_routes(app, get_config_manager())
-            logger.info('✅ 测试API路由注册成功 (13个)')
+            print('✅ 测试API路由注册成功 (13个)')
         except Exception as e:
-            logger.warning(f'⚠️ 测试API路由注册失败: {e}')
+            print(f'⚠️ 测试API路由注册失败: {e}')
 
         # 注册素材管理路由
         try:
             from backend.api.material_routes import register_material_routes
             register_material_routes(app, backend_db_manager)
-            logger.info('✅ 素材管理路由注册成功 (4个)')
+            print('✅ 素材管理路由注册成功 (4个)')
         except Exception as e:
-            logger.warning(f'⚠️ 素材管理路由注册失败: {e}')
+            print(f'⚠️ 素材管理路由注册失败: {e}')
 
         # 注册视频导出路由
         try:
             from backend.api.export_api import register_export_routes
             register_export_routes(app, backend_db_manager)
-            logger.info('✅ 视频导出路由注册成功 (3个)')
+            print('✅ 视频导出路由注册成功 (3个)')
         except Exception as e:
-            logger.warning(f'⚠️ 视频导出路由注册失败: {e}')
+            print(f'⚠️ 视频导出路由注册失败: {e}')
 
         # 注册设置管理路由
         try:
             from backend.api.settings_api import register_settings_routes
             register_settings_routes(app, backend_db_manager)
-            logger.info('✅ 设置管理路由注册成功 (7个)')
+            print('✅ 设置管理路由注册成功 (7个)')
         except Exception as e:
-            logger.warning(f'⚠️ 设置管理路由注册失败: {e}')
+            print(f'⚠️ 设置管理路由注册失败: {e}')
 
         # 注册特效API路由
         try:
             from backend.api.effects_api import register_effects_routes
             register_effects_routes(app)
-            logger.info('✅ 特效API路由注册成功 (2个)')
+            print('✅ 特效API路由注册成功 (2个)')
         except Exception as e:
-            logger.warning(f'⚠️ 特效API路由注册失败: {e}')
+            print(f'⚠️ 特效API路由注册失败: {e}')
 
         # 注册字幕API路由
         try:
             from backend.api.subtitle_api import register_subtitle_routes
             register_subtitle_routes(app)
-            logger.info('✅ 字幕API路由注册成功 (5个)')
+            print('✅ 字幕API路由注册成功 (5个)')
         except Exception as e:
-            logger.warning(f'⚠️ 字幕API路由注册失败: {e}')
+            print(f'⚠️ 字幕API路由注册失败: {e}')
 
         # 注册清理API路由
         try:
             from backend.api.cleanup_api import register_cleanup_routes
             register_cleanup_routes(app)
-            logger.info('✅ 清理API路由注册成功 (1个)')
+            print('✅ 清理API路由注册成功 (1个)')
         except Exception as e:
-            logger.warning(f'⚠️ 清理API路由注册失败: {e}')
+            print(f'⚠️ 清理API路由注册失败: {e}')
 
         # 初始化全局状态管理器
         try:
             from backend.core.global_state import get_global_state
             global_state = get_global_state()
-            logger.info('✅ 全局状态管理器初始化成功')
-            logger.info(f'   - 活动LLM模型: {global_state.active_llm_model}')
-            logger.info(f'   - 活动视觉模型: {global_state.active_vision_model}')
+            print('✅ 全局状态管理器初始化成功')
+            print(f'   - 活动LLM模型: {global_state.active_llm_model}')
+            print(f'   - 活动视觉模型: {global_state.active_vision_model}')
         except Exception as e:
-            logger.warning(f'⚠️ 全局状态管理器初始化失败: {e}')
+            print(f'⚠️ 全局状态管理器初始化失败: {e}')
 
-        logger.info('✅ 后端增强功能已启用（所有功能模块）')
+        print('✅ 后端增强功能已启用（所有功能模块）')
     except Exception as e:
-        logger.warning(f'⚠️  后端增强功能启用失败: {e}')
-        logger.exception(e)
+        print(f'⚠ 后端增强功能启用失败: {e}')
         BACKEND_AVAILABLE = False
 
-logger.info('✅ 数据库管理器初始化完成')
+print('✅ 数据库管理器初始化完成')
 
 # ==================== 基础路由 ====================
 @app.route('/favicon.ico')
@@ -1113,7 +1079,7 @@ def page_not_found(e):
 @app.errorhandler(500)
 def internal_error(e):
     """500页面"""
-    logger.error(f'Internal error: {e}')
+    print(f'Internal error: {e}')
     return render_template('500.html'), 500
 
 # ==================== 设置管理API ====================
@@ -1132,7 +1098,7 @@ def internal_error(e):
 #             'data': {}
 #         })
 #     except Exception as e:
-#         logger.error(f'获取设置失败: {e}')
+#         print(f'获取设置失败: {e}')
 #         return jsonify({'code': 1, 'msg': str(e)}), 500
 
 # @app.route('/settings/save', methods=['POST'])
@@ -1144,7 +1110,7 @@ def internal_error(e):
 #         # 暂时只返回成功
 #         return jsonify({'code': 0, 'msg': '保存成功'})
 #     except Exception as e:
-#         logger.error(f'保存设置失败: {e}')
+#         print(f'保存设置失败: {e}')
 #         return jsonify({'code': 1, 'msg': str(e)}), 500
 
 # @app.route('/settings/reset', methods=['POST'])
@@ -1154,7 +1120,7 @@ def internal_error(e):
 #     try:
 #         return jsonify({'code': 0, 'msg': '重置成功'})
 #     except Exception as e:
-#         logger.error(f'重置设置失败: {e}')
+#         print(f'重置设置失败: {e}')
 #         return jsonify({'code': 1, 'msg': str(e)}), 500
 
 # @app.route('/settings/clear-cache', methods=['POST'])
@@ -1164,7 +1130,7 @@ def internal_error(e):
 #     try:
 #         return jsonify({'code': 0, 'msg': '清理成功'})
 #     except Exception as e:
-#         logger.error(f'清理缓存失败: {e}')
+#         print(f'清理缓存失败: {e}')
 #         return jsonify({'code': 1, 'msg': str(e)}), 500
 
 @app.route('/system/info', methods=['GET'])
@@ -1185,16 +1151,16 @@ def get_system_info():
             }
         })
     except Exception as e:
-        logger.error(f'获取系统信息失败: {e}')
+        print(f'获取系统信息失败: {e}')
         return jsonify({'code': 1, 'msg': str(e)}), 500
 
-logger.info('======✅ 所有API路由注册完成======')
+print('======✅ 所有API路由注册完成======')
 
 # ==================== WebSocket事件处理 - 完整实现 ====================
 @socketio.on('connect')
 def handle_connect():
     """客户端连接 - 完整实现"""
-    logger.info(f'✅ 客户端连接: {request.sid}')
+    print(f'✅ 客户端连接: {request.sid}')
     emit('connected', {
         'status': 'connected',
         'sid': request.sid,
@@ -1204,7 +1170,7 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     """客户端断开 - 完整实现"""
-    logger.info(f'❌ 客户端断开: {request.sid}')
+    print(f'❌ 客户端断开: {request.sid}')
 
 @socketio.on('join_room')
 def handle_join_room(data):
@@ -1212,7 +1178,7 @@ def handle_join_room(data):
     room = data.get('room')
     if room:
         join_room(room)
-        logger.info(f'📥 客户端 {request.sid} 加入房间: {room}')
+        print(f'📥 客户端 {request.sid} 加入房间: {room}')
         emit('joined_room', {'room': room, 'sid': request.sid}, room=request.sid)
 
 @socketio.on('leave_room')
@@ -1221,7 +1187,7 @@ def handle_leave_room(data):
     room = data.get('room')
     if room:
         leave_room(room)
-        logger.info(f'📤 客户端 {request.sid} 离开房间: {room}')
+        print(f'📤 客户端 {request.sid} 离开房间: {room}')
         emit('left_room', {'room': room, 'sid': request.sid}, room=request.sid)
 
 @socketio.on('ping')
@@ -1229,7 +1195,7 @@ def handle_ping(data):
     """处理ping请求 - 完整实现"""
     emit('pong', {'timestamp': datetime.now().isoformat()})
 
-logger.info('======✅ WebSocket事件处理注册完成======')
+print('======✅ WebSocket事件处理注册完成======')
 
 # ==================== 任务处理函数 - 完整实现 ====================
 def process_task(task_id: str, task_type: str, input_data: Dict):
@@ -1242,7 +1208,7 @@ def process_task(task_id: str, task_type: str, input_data: Dict):
         input_data: 输入数据
     """
     try:
-        logger.info(f'🔄 开始处理任务: {task_id} - {task_type}')
+        print(f'🔄 开始处理任务: {task_id} - {task_type}')
 
         db_manager.update_task_status(task_id, 'running')
         socketio.emit('task_status', {
@@ -1262,7 +1228,7 @@ def process_task(task_id: str, task_type: str, input_data: Dict):
                 'progress': progress,
                 'message': f'处理中... {progress}%'
             })
-            logger.info(f'📊 任务进度: {task_id} - {progress}%')
+            print(f'📊 任务进度: {task_id} - {progress}%')
 
         # 任务完成
         output_data = {
@@ -1280,10 +1246,10 @@ def process_task(task_id: str, task_type: str, input_data: Dict):
             'output_data': output_data
         })
 
-        logger.info(f'✅ 任务完成: {task_id}')
+        print(f'✅ 任务完成: {task_id}')
 
     except Exception as e:
-        logger.error(f'❗ 任务处理失败: {task_id} - {e}', exc_info=True)
+        print(f'❗ 任务处理失败: {task_id} - {e}')
         db_manager.update_task_status(task_id, 'failed', error_message=str(e))
         socketio.emit('task_status', {
             'task_id': task_id,
@@ -1301,9 +1267,9 @@ def process_video_cut(task_id: str, data: Dict):
         data: 输入数据（video_path, start_time, end_time）
     """
     try:
-        logger.info(f'🎬 开始视频剪切: {task_id}')
-        logger.info(f'   输入: {data.get("video_path")}')
-        logger.info(f'   时间: {data.get("start_time")}s - {data.get("end_time")}s')
+        print(f'🎬 开始视频剪切: {task_id}')
+        print(f'   输入: {data.get("video_path")}')
+        print(f'   时间: {data.get("start_time")}s - {data.get("end_time")}s')
 
         db_manager.update_task_status(task_id, 'running')
         socketio.emit('task_status', {'task_id': task_id, 'status': 'running', 'message': '开始剪切视频'})
@@ -1321,18 +1287,18 @@ def process_video_cut(task_id: str, data: Dict):
         db_manager.update_task_status(task_id, 'completed', output_data=output_data)
         socketio.emit('task_status', {'task_id': task_id, 'status': 'completed', 'output_data': output_data})
 
-        logger.info(f'✅ 视频剪切完成: {task_id} -> {output_path}')
+        print(f'✅ 视频剪切完成: {task_id} -> {output_path}')
 
     except Exception as e:
-        logger.error(f'❗ 视频剪切失败: {e}', exc_info=True)
+        print(f'❗ 视频剪切失败: {e}')
         db_manager.update_task_status(task_id, 'failed', error_message=str(e))
         socketio.emit('task_status', {'task_id': task_id, 'status': 'failed', 'error': str(e)})
 
 def process_video_merge(task_id: str, data: Dict):
     """处理视频合并 - 完整实现"""
     try:
-        logger.info(f'🎬 开始视频合并: {task_id}')
-        logger.info(f'   文件数: {len(data.get("video_paths", []))}')
+        print(f'🎬 开始视频合并: {task_id}')
+        print(f'   文件数: {len(data.get("video_paths", []))}')
 
         db_manager.update_task_status(task_id, 'running')
         socketio.emit('task_status', {'task_id': task_id, 'status': 'running', 'message': '开始合并视频'})
@@ -1345,18 +1311,18 @@ def process_video_merge(task_id: str, data: Dict):
         db_manager.update_task_status(task_id, 'completed', output_data={'output_path': output_path})
         socketio.emit('task_status', {'task_id': task_id, 'status': 'completed'})
 
-        logger.info(f'✅ 视频合并完成: {task_id}')
+        print(f'✅ 视频合并完成: {task_id}')
 
     except Exception as e:
-        logger.error(f'❗ 视频合并失败: {e}', exc_info=True)
+        print(f'❗ 视频合并失败: {e}')
         db_manager.update_task_status(task_id, 'failed', error_message=str(e))
         socketio.emit('task_status', {'task_id': task_id, 'status': 'failed', 'error': str(e)})
 
 def process_tts(task_id: str, data: Dict):
     """处理TTS语音合成 - 完整实现"""
     try:
-        logger.info(f'🎙️ 开始TTS合成: {task_id}')
-        logger.info(f'   文本: {data.get("text")[:50]}...')
+        print(f'🎙️ 开始TTS合成: {task_id}')
+        print(f'   文本: {data.get("text")[:50]}...')
 
         db_manager.update_task_status(task_id, 'running')
         socketio.emit('task_status', {'task_id': task_id, 'status': 'running', 'message': '开始语音合成'})
@@ -1369,18 +1335,18 @@ def process_tts(task_id: str, data: Dict):
         db_manager.update_task_status(task_id, 'completed', output_data={'output_path': output_path})
         socketio.emit('task_status', {'task_id': task_id, 'status': 'completed'})
 
-        logger.info(f'✅ TTS合成完成: {task_id}')
+        print(f'✅ TTS合成完成: {task_id}')
 
     except Exception as e:
-        logger.error(f'❗ TTS合成失败: {e}', exc_info=True)
+        print(f'❗ TTS合成失败: {e}')
         db_manager.update_task_status(task_id, 'failed', error_message=str(e))
         socketio.emit('task_status', {'task_id': task_id, 'status': 'failed', 'error': str(e)})
 
 def process_asr(task_id: str, data: Dict):
     """处理ASR语音识别 - 完整实现"""
     try:
-        logger.info(f'🎤 开始ASR识别: {task_id}')
-        logger.info(f'   音频: {data.get("audio_path")}')
+        print(f'🎤 开始ASR识别: {task_id}')
+        print(f'   音频: {data.get("audio_path")}')
 
         db_manager.update_task_status(task_id, 'running')
         socketio.emit('task_status', {'task_id': task_id, 'status': 'running', 'message': '开始语音识别'})
@@ -1393,18 +1359,18 @@ def process_asr(task_id: str, data: Dict):
         db_manager.update_task_status(task_id, 'completed', output_data=result)
         socketio.emit('task_status', {'task_id': task_id, 'status': 'completed', 'output_data': result})
 
-        logger.info(f'✅ ASR识别完成: {task_id}')
+        print(f'✅ ASR识别完成: {task_id}')
 
     except Exception as e:
-        logger.error(f'❗ ASR识别失败: {e}', exc_info=True)
+        print(f'❗ ASR识别失败: {e}')
         db_manager.update_task_status(task_id, 'failed', error_message=str(e))
         socketio.emit('task_status', {'task_id': task_id, 'status': 'failed', 'error': str(e)})
 
 def process_scene_detect(task_id: str, data: Dict):
     """处理场景检测 - 完整实现"""
     try:
-        logger.info(f'🎞️ 开始场景检测: {task_id}')
-        logger.info(f'   视频: {data.get("video_path")}')
+        print(f'🎞️ 开始场景检测: {task_id}')
+        print(f'   视频: {data.get("video_path")}')
 
         db_manager.update_task_status(task_id, 'running')
         socketio.emit('task_status', {'task_id': task_id, 'status': 'running', 'message': '开始场景检测'})
@@ -1417,17 +1383,17 @@ def process_scene_detect(task_id: str, data: Dict):
         db_manager.update_task_status(task_id, 'completed', output_data=result)
         socketio.emit('task_status', {'task_id': task_id, 'status': 'completed', 'output_data': result})
 
-        logger.info(f'✅ 场景检测完成: {task_id}')
+        print(f'✅ 场景检测完成: {task_id}')
 
     except Exception as e:
-        logger.error(f'❗ 场景检测失败: {e}', exc_info=True)
+        print(f'❗ 场景检测失败: {e}')
         db_manager.update_task_status(task_id, 'failed', error_message=str(e))
         socketio.emit('task_status', {'task_id': task_id, 'status': 'failed', 'error': str(e)})
 
 def run_server():
     """启动Flask服务器"""
     try:
-        logger.info('🚀 启动SocketIO服务器...')
+        print('🚀 启动SocketIO服务器...')
         socketio.run(
             app,
             host=APP_HOST,
@@ -1437,76 +1403,7 @@ def run_server():
             allow_unsafe_werkzeug=True
         )
     except Exception as e:
-        logger.error(f'❗ 服务器启动失败: {e}', exc_info=True)
-
-def start_desktop_app():
-    """启动桌面应用 - 完整实现"""
-    try:
-        # 等待服务器完全启动
-        import requests
-        max_retries = 10
-        for i in range(max_retries):
-            try:
-                response = requests.get(f'http://{UI_HOST}:{APP_PORT}/', timeout=1)
-                if response.status_code == 200:
-                    logger.info('✅ 服务器已就绪')
-                    break
-            except:
-                if i < max_retries - 1:
-                    time.sleep(0.5)
-                else:
-                    logger.warning('⚠ 服务器启动超时')
-        # 使用默认浏览器打开
-        import webbrowser
-        webbrowser.open(f'http://{UI_HOST}:{APP_PORT}')
-
-        logger.info('✅ 浏览器已打开')
-        logger.info(f'💡 访问地址: http://{UI_HOST}:{APP_PORT}')
-
-        # 保持运行
-        try:
-            logger.info('💡 按 Ctrl+C 退出程序')
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            logger.info('\n✅ 程序正常退出')
-        # 尝试使用WebView
-        # try:
-        #     import webview
-        #     logger.info('🖥️  启动桌面窗口...')
-        #     # 创建窗口
-        #     webview.create_window(
-        #         title='AIJian v2.0',
-        #         url=f'http://{UI_HOST}:{APP_PORT}',
-        #         width=1400,
-        #         height=900,
-        #         resizable=True,
-        #         fullscreen=False
-        #     )
-        #     logger.info('✅ 桌面窗口创建成功')
-        #     # 启动应用
-        #     webview.start(debug=False)
-        # except ImportError:
-        #     logger.info('ℹ️ PyWebView未安装，使用浏览器模式')
-        #     logger.info('🌐 正在打开浏览器...')
-        #
-        #     # 使用默认浏览器打开
-        #     import webbrowser
-        #     webbrowser.open(f'http://{UI_HOST}:{APP_PORT}')
-        #
-        #     logger.info('✅ 浏览器已打开')
-        #     logger.info(f'💡 访问地址: http://{UI_HOST}:{APP_PORT}')
-        #
-        #     # 保持运行
-        #     try:
-        #         logger.info('💡 按 Ctrl+C 退出程序')
-        #         while True:
-        #             time.sleep(1)
-        #     except KeyboardInterrupt:
-        #         logger.info('\n✅ 程序正常退出')
-    except Exception as e:
-        logger.error(f'❗ 桌面应用启动失败: {e}', exc_info=True)
-        logger.info(f'💡 请手动访问: http://{UI_HOST}:{APP_PORT}')
+        print(f'❗ 服务器启动失败: {e}')
 
 # ==================== 三大核心功能API路由 ====================
 # 辅助函数：加载API配置
@@ -1520,7 +1417,7 @@ def load_api_config_data():
                 return yaml.safe_load(f) or {}
         return {}
     except Exception as e:
-        logger.error(f'加载API配置失败: {e}')
+        print(f'加载API配置失败: {e}')
         return {}
 
 if not BACKEND_AVAILABLE:
@@ -1536,18 +1433,18 @@ if not BACKEND_AVAILABLE:
             api_config = load_api_config_data()
             vision_config = api_config.get('vision', {})
 
-            logger.info(f'开始分析视频: {video_path}')
-            logger.info(f'使用视觉模型: {vision_config.get("default_model", "本地模型")}')
+            print(f'开始分析视频: {video_path}')
+            print(f'使用视觉模型: {vision_config.get("default_model", "本地模型")}')
 
             # 模拟视觉分析结果
-            logger.warning('后端增强模块不可用，/api/commentary/analyze 无法提供真实视频分析结果')
+            print('后端增强模块不可用，/api/commentary/analyze 无法提供真实视频分析结果')
             return jsonify({
                 'code': 1,
                 'msg': '原创解说视频分析功能需要后端增强服务，当前未启用 backend 模块，无法执行分析。',
                 'data': None
             })
         except Exception as e:
-            logger.error(f'视频分析失败: {e}')
+            print(f'视频分析失败: {e}')
             return jsonify({'code': -1, 'msg': str(e)})
 
     @app.route('/api/commentary/generate-script', methods=['POST'])
@@ -1562,17 +1459,17 @@ if not BACKEND_AVAILABLE:
             api_config = load_api_config_data()
             llm_config = api_config.get('llm', {})
 
-            logger.info(f'开始生成文案，使用模型: {llm_config.get("default_model", "默认模型")}')
+            print(f'开始生成文案，使用模型: {llm_config.get("default_model", "默认模型")}')
 
             # 模拟文案生成
-            logger.warning('后端增强模块不可用，/api/commentary/generate-script 无法调用真实 LLM 生成文案')
+            print('后端增强模块不可用，/api/commentary/generate-script 无法调用真实 LLM 生成文案')
             return jsonify({
                 'code': 1,
                 'msg': '原创解说文案生成功能需要后端增强服务，当前未启用 backend 模块，无法生成文案。',
                 'data': None
             })
         except Exception as e:
-            logger.error(f'文案生成失败: {e}')
+            print(f'文案生成失败: {e}')
             return jsonify({'code': -1, 'msg': str(e)})
 
     @app.route('/api/commentary/create', methods=['POST'])
@@ -1584,14 +1481,14 @@ if not BACKEND_AVAILABLE:
             video_path = data.get('video_path')
             script = data.get('script')
 
-            logger.warning('后端增强模块不可用，/api/commentary/create 无法创建真实原创解说项目')
+            print('后端增强模块不可用，/api/commentary/create 无法创建真实原创解说项目')
             return jsonify({
                 'code': 1,
                 'msg': '原创解说项目创建功能需要后端增强服务，当前未启用 backend 模块，无法创建项目。',
                 'data': None
             })
         except Exception as e:
-            logger.error(f'创建项目失败: {e}')
+            print(f'创建项目失败: {e}')
             return jsonify({'code': -1, 'msg': str(e)})
 
     @app.route('/api/commentary/process', methods=['POST'])
@@ -1603,14 +1500,14 @@ if not BACKEND_AVAILABLE:
             video_path = data.get('video_path')
             config = data.get('config', {})
 
-            logger.warning('后端增强模块不可用，/api/commentary/process 无法执行真实原创解说处理流程')
+            print('后端增强模块不可用，/api/commentary/process 无法执行真实原创解说处理流程')
             return jsonify({
                 'code': 1,
                 'msg': '原创解说完整处理流程需要后端增强服务，当前未启用 backend 模块，无法执行处理。',
                 'data': None
             })
         except Exception as e:
-            logger.error(f'项目处理失败: {e}')
+            print(f'项目处理失败: {e}')
             return jsonify({'code': -1, 'msg': str(e)})
 
     # 2. 混剪模式相关API
@@ -1623,14 +1520,14 @@ if not BACKEND_AVAILABLE:
             video_paths = data.get('video_paths', [])
             style = data.get('style')
 
-            logger.warning('后端增强模块不可用，/api/remix/create 无法创建真实混剪项目')
+            print('后端增强模块不可用，/api/remix/create 无法创建真实混剪项目')
             return jsonify({
                 'code': 1,
                 'msg': '智能混剪功能需要后端增强服务，当前未启用 backend 模块，无法创建混剪项目。',
                 'data': None
             })
         except Exception as e:
-            logger.error(f'创建混剪项目失败: {e}')
+            print(f'创建混剪项目失败: {e}')
             return jsonify({'code': -1, 'msg': str(e)})
 
     @app.route('/api/remix/process', methods=['POST'])
@@ -1640,14 +1537,14 @@ if not BACKEND_AVAILABLE:
             data = request.get_json()
             project_id = data.get('project_id')
 
-            logger.warning('后端增强模块不可用，/api/remix/process 无法执行真实混剪处理流程')
+            print('后端增强模块不可用，/api/remix/process 无法执行真实混剪处理流程')
             return jsonify({
                 'code': 1,
                 'msg': '智能混剪处理流程需要后端增强服务，当前未启用 backend 模块，无法执行处理。',
                 'data': None
             })
         except Exception as e:
-            logger.error(f'混剪处理失败: {e}')
+            print(f'混剪处理失败: {e}')
             return jsonify({'code': -1, 'msg': str(e)})
 
     # 3. AI配音相关API
@@ -1659,7 +1556,7 @@ if not BACKEND_AVAILABLE:
             voice_id = data.get('voice_id')
             sample_text = data.get('sample_text', '这是音色预览示例')
 
-            logger.info(f'预览音色: {voice_id}')
+            print(f'预览音色: {voice_id}')
 
             # 模拟生成预览音频（前端回放期望 /output/audios/ 路径）
             from pathlib import Path as _Path
@@ -1683,14 +1580,14 @@ if not BACKEND_AVAILABLE:
                 asyncio.run(_run_preview())
                 tts_ok = True
             except Exception as ee:
-                logger.warning(f'edge-tts 预览失败，尝试 gTTS 回退: {ee}')
+                print(f'edge-tts 预览失败，尝试 gTTS 回退: {ee}')
                 try:
                     from gtts import gTTS
                     tts = gTTS(text=text, lang='zh')
                     tts.save(str(out_path))
                     tts_ok = True
                 except Exception as e2:
-                    logger.error(f'TTS 预览失败（edge-tts 与 gTTS 均失败）: {ee} / {e2}', exc_info=True)
+                    print(f'TTS 预览失败（edge-tts 与 gTTS 均失败）: {ee} / {e2}')
                     return jsonify({'code': 1, 'msg': f'预览生成失败: {e2}', 'data': None}), 500
 
             if not tts_ok or not _Path(out_path).exists():
@@ -1709,7 +1606,7 @@ if not BACKEND_AVAILABLE:
                 }
             })
         except Exception as e:
-            logger.error(f'音色预览失败: {e}')
+            print(f'音色预览失败: {e}')
             return jsonify({'code': -1, 'msg': str(e), 'data': None})
 
     @app.route('/api/voiceover/generate', methods=['POST'])
@@ -1762,14 +1659,14 @@ if not BACKEND_AVAILABLE:
                 asyncio.run(_run())
                 tts_ok = True
             except Exception as ee:
-                logger.warning(f'edge-tts 失败，尝试 gTTS 回退: {ee}')
+                print(f'edge-tts 失败，尝试 gTTS 回退: {ee}')
                 try:
                     from gtts import gTTS
                     tts = gTTS(text=text, lang='zh')
                     tts.save(str(out_path))
                     tts_ok = True
                 except Exception as e2:
-                    logger.error(f'TTS 失败（edge-tts 与 gTTS 均失败）: {ee} / {e2}', exc_info=True)
+                    print(f'TTS 失败（edge-tts 与 gTTS 均失败）: {ee} / {e2}')
                     return jsonify({'code': 1, 'msg': f'TTS 生成失败: {e2}', 'data': None}), 500
 
             if not tts_ok or not out_path.exists():
@@ -1784,7 +1681,7 @@ if not BACKEND_AVAILABLE:
             }
             return jsonify({'code': 0, 'msg': '生成成功', 'data': result})
         except Exception as e:
-            logger.error(f'配音生成失败: {e}', exc_info=True)
+            print(f'配音生成失败: {e}')
             return jsonify({'code': 1, 'msg': f'配音生成失败: {e}', 'data': None}), 500
 
 # ==================== 克隆语音相关API ====================
@@ -1799,7 +1696,7 @@ def test_voice_clone():
         # 导入voice_clone引擎
         import sys
         sys.path.append(os.path.join(BASE_DIR, 'backend'))
-        from engine.voice_clone_engine import VoiceCloneEngine
+        from backend.engine.voice_clone_engine import VoiceCloneEngine
 
         # 初始化引擎
         engine = VoiceCloneEngine(voice_clone_path, model_path)
@@ -1807,7 +1704,7 @@ def test_voice_clone():
         # 获取内置音色列表
         voices = engine.get_builtin_voices()
 
-        logger.info(f'✅ 克隆语音引擎测试成功，支持{len(voices)}种音色')
+        print(f'✅ 克隆语音引擎测试成功，支持{len(voices)}种音色')
 
         return jsonify({
             'code': 0,
@@ -1815,7 +1712,7 @@ def test_voice_clone():
             'voices': voices
         })
     except Exception as e:
-        logger.error(f'❌ 克隆语音引擎测试失败: {e}')
+        print(f'❌ 克隆语音引擎测试失败: {e}')
         return jsonify({'code': -1, 'msg': str(e)})
 
 @app.route('/api/voice_clone/voices', methods=['GET'])
@@ -1832,14 +1729,14 @@ def get_voice_clone_voices():
         # 导入voice_clone引擎
         import sys
         sys.path.append(os.path.join(BASE_DIR, 'backend'))
-        from engine.voice_clone_engine import VoiceCloneEngine
+        from backend.engine.voice_clone_engine import VoiceCloneEngine
 
         engine = VoiceCloneEngine(voice_clone_path, model_path)
         voices = engine.get_builtin_voices()
 
         return jsonify({'code': 0, 'voices': voices})
     except Exception as e:
-        logger.error(f'❌ 获取音色列表失败: {e}')
+        print(f'❌ 获取音色列表失败: {e}')
         return jsonify({'code': -1, 'msg': str(e), 'voices': []})
 
 @app.route('/api/voice_clone/generate', methods=['POST'])
@@ -1872,7 +1769,7 @@ def voice_clone_generate():
         try:
             import sys as _sys
             _sys.path.append(str(BASE_DIR / 'backend'))
-            from engine import TTSEngine
+            from backend.engine import TTSEngine
             tts_engine = TTSEngine(default_engine='edge-tts')
             ok = tts_engine.synthesize(text, str(tmp_mp3), engine='edge-tts', voice=tts_voice, rate='+0%', volume='+0%')
             if not ok:
@@ -1881,7 +1778,7 @@ def voice_clone_generate():
             if not ok:
                 return jsonify({'code': 1, 'msg': 'TTS 合成失败'}), 500
         except Exception as te:
-            logger.error(f'TTS 合成异常: {te}', exc_info=True)
+            print(f'TTS 合成异常: {te}')
             return jsonify({'code': 1, 'msg': f'TTS 合成异常: {te}'}), 500
 
         # 2) 转 WAV（部分克隆引擎更稳健）
@@ -1891,17 +1788,17 @@ def voice_clone_generate():
             cmd = ['ffmpeg', '-y', '-i', str(tmp_mp3), '-ar', '44100', '-ac', '1', str(tmp_wav)]
             subprocess.run(cmd, check=True, capture_output=True)
         except Exception as ce:
-            logger.warning(f'MP3->WAV 转换失败，尝试直接使用 MP3：{ce}')
+            print(f'MP3->WAV 转换失败，尝试直接使用 MP3：{ce}')
             tmp_wav = tmp_mp3  # 退回直接使用 MP3
 
         # 3) 调用语音克隆引擎
         try:
             import sys as _sys
             _sys.path.append(str(BASE_DIR / 'backend'))
-            from engine import VoiceCloneEngine
+            from backend.engine import VoiceCloneEngine
             vc_engine = VoiceCloneEngine(voice_clone_path=voice_clone_path, model_path=model_path)
         except Exception as ie:
-            logger.error(f'语音克隆引擎加载失败: {ie}', exc_info=True)
+            print(f'语音克隆引擎加载失败: {ie}')
             return jsonify({'code': 1, 'msg': f'语音克隆引擎加载失败: {ie}'}), 500
 
         # 输出到 /output/audios
@@ -1915,7 +1812,7 @@ def voice_clone_generate():
         audio_url = f"/output/audios/{out_name}"
         return jsonify({'code': 0, 'audio_url': audio_url, 'voice_id': voice_id})
     except Exception as e:
-        logger.error(f'❌ 克隆语音生成失败: {e}', exc_info=True)
+        print(f'❌ 克隆语音生成失败: {e}')
         return jsonify({'code': -1, 'msg': str(e)})
 
 # ==================== 其他配置API ====================
@@ -1929,10 +1826,10 @@ def reset_api_config():
         if os.path.exists(config_path):
             os.remove(config_path)
 
-        logger.info('✅ API配置已恢复默认')
+        print('✅ API配置已恢复默认')
         return jsonify({'code': 0, 'msg': '恢复成功'})
     except Exception as e:
-        logger.error(f'❌ 恢复API配置失败: {e}')
+        print(f'❌ 恢复API配置失败: {e}')
         return jsonify({'code': -1, 'msg': str(e)})
 
 @app.route('/api/narration/hook-types', methods=['GET'])
@@ -1941,7 +1838,7 @@ def get_hook_types():
     try:
         import sys
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
-        from prompts.narration_prompts import NarrationPrompts
+        from backend.prompts.narration_prompts import NarrationPrompts
 
         hook_types = []
         for key, info in NarrationPrompts.get_all_hook_types().items():
@@ -1952,10 +1849,10 @@ def get_hook_types():
                 'examples': info['examples']
             })
 
-        logger.info(f'✅ 获取到{len(hook_types)}种钩子类型')
+        print(f'✅ 获取到{len(hook_types)}种钩子类型')
         return jsonify({'code': 0, 'hook_types': hook_types})
     except Exception as e:
-        logger.error(f'❌ 获取钩子类型失败: {e}')
+        print(f'❌ 获取钩子类型失败: {e}')
         return jsonify({'code': 1, 'msg': str(e)}), 500
 
 @app.route('/api/config/detect_jianying', methods=['POST'])
@@ -1974,45 +1871,48 @@ def detect_jianying_path():
 
             for path in possible_paths:
                 if os.path.exists(path):
-                    logger.info(f'✅ 检测到剪映路径: {path}')
+                    print(f'✅ 检测到剪映路径: {path}')
                     return jsonify({'code': 0, 'path': path})
 
         return jsonify({'code': -1, 'msg': '未检测到剪映安装路径'})
     except Exception as e:
-        logger.error(f'❌ 检测剪映路径失败: {e}')
+        print(f'❌ 检测剪映路径失败: {e}')
         return jsonify({'code': -1, 'msg': str(e)})
+
 
 # ==================== 视频导出API ====================
 # 已通过 backend.api.export_api 模块注册，避免重复定义
 def main():
     """主函数 - 完整实现"""
     try:
-        logger.info('\n' + '='*70)
-        logger.info('🌟 AIJian v2.0 - 智能视频剪辑工具')
-        logger.info('='*70)
-        logger.info(f'📅 启动时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-        logger.info(f'🐍 Python版本: {sys.version.split()[0]}')
-        logger.info(f'📂 项目目录: {BASE_DIR}')
-        logger.info(f'💾 数据库: {db_manager.db_path}')
-        logger.info(f'🔧 后端增强: {"已启用" if BACKEND_AVAILABLE else "未启用"}')
-        logger.info('='*70 + '\n')
+        print('\n' + '='*70)
+        print('🌟 AIJian v2.0 - 智能视频剪辑工具')
+        print('='*70)
+        print(f'📅 启动时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+        print(f'🐍 Python版本: {sys.version.split()[0]}')
+        print(f'📂 项目目录: {BASE_DIR}')
+        print(f'💾 数据库: {db_manager.db_path}')
+        print(f'🔧 后端增强: {"已启用" if BACKEND_AVAILABLE else "未启用"}')
+        print('='*70 + '\n')
 
         # 在后台线程启动服务器
         server_thread = threading.Thread(target=run_server, daemon=True)
         server_thread.start()
 
-        # 等待服务器启动
-        logger.info('⏳ 等待服务器启动...')
-        time.sleep(2)
-        logger.info(f'✅ 服务器已启动: http://{UI_HOST}:{APP_PORT}\n')
-
-        # 启动桌面应用
-        start_desktop_app()
-    except KeyboardInterrupt:
-        logger.info('\n✅ 用户中断，程序退出')
-        sys.exit(0)
+        # 使用默认浏览器打开
+        try:
+            import webbrowser
+            webbrowser.open(f'http://{UI_HOST}:{APP_PORT}')
+            print(f'💡 访问地址: http://{UI_HOST}:{APP_PORT}')
+            try:  # 保持运行
+                while True:
+                    time.sleep(2)
+            except KeyboardInterrupt:
+                print('\n✅ 程序正常退出')
+        except Exception as e:
+            print(f'💡 请手动访问: http://{UI_HOST}:{APP_PORT}')
     except Exception as e:
-        logger.error(f'\n❗ 应用启动失败: {str(e)}', exc_info=True)
+        print(f'\n❗ 应用启动失败: {str(e)}')
         sys.exit(1)
 
 
